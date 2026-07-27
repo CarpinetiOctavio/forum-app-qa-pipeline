@@ -1,0 +1,152 @@
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches: [ 'feature/**' ]
+  pull_request:
+    branches: [ staging, main ]
+
+jobs:
+  backend-tests:
+    name: Backend Tests (Go)
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v5.0.0
+      
+      - name: Setup Go
+        uses: actions/setup-go@v6.2.0
+        with:
+          go-version: '1.24'
+          cache: false
+
+      - name: Cache Go modules
+        uses: actions/cache@v5.0.0
+        with:
+          path: |
+            ~/go/pkg/mod
+            ~/.cache/go-build
+          key: ${{ runner.os }}-go-${{ hashFiles('backend/go.sum') }}
+          restore-keys: |
+            ${{ runner.os }}-go-
+
+      - name: Run backend tests
+        working-directory: ./backend
+        run: |
+          go mod download
+          go build ./...
+          go test ./tests/services/... -v -coverprofile=coverage.out -coverpkg=./internal/services/...
+
+      - name: Upload backend coverage artifact
+        uses: actions/upload-artifact@v6.0.0
+        with:
+          name: backend-coverage
+          path: backend/coverage.out
+          retention-days: 7
+
+  frontend-tests:
+    name: Frontend Tests (React)
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v5.0.0
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v5.0.0
+        with:
+          node-version: '18'
+          package-manager-cache: false
+
+      - name: Cache Node modules
+        uses: actions/cache@v5.0.0
+        with:
+          path: frontend/node_modules
+          key: ${{ runner.os }}-node-${{ hashFiles('frontend/package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-node-
+
+      - name: Install dependencies
+        working-directory: ./frontend
+        run: npm ci
+
+      - name: Run frontend tests
+        working-directory: ./frontend
+        run: npm test -- --coverage --watchAll=false
+
+      - name: Upload frontend coverage artifact
+        uses: actions/upload-artifact@v6.0.0
+        with:
+          name: frontend-coverage
+          path: frontend/coverage
+          retention-days: 7
+
+  backend-build:
+    name: Backend Build
+    runs-on: ubuntu-latest
+    needs: backend-tests
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v5.0.0
+      
+      - name: Setup Go
+        uses: actions/setup-go@v6.2.0
+        with:
+          go-version: '1.24'
+          cache: false
+      
+      - name: Build backend
+        working-directory: ./backend
+        run: go build -o app cmd/api/main.go
+
+  frontend-build:
+    name: Frontend Build
+    runs-on: ubuntu-latest
+    needs: frontend-tests
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v5.0.0
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v5.0.0
+        with:
+          node-version: '18'
+          package-manager-cache: false
+      
+      - name: Cache Node modules
+        uses: actions/cache@v5.0.0
+        with:
+          path: frontend/node_modules
+          key: ${{ runner.os }}-node-${{ hashFiles('frontend/package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-node-
+
+      - name: Install dependencies
+        working-directory: ./frontend
+        run: npm ci
+
+      - name: Build frontend
+        working-directory: ./frontend
+        run: npm run build
+
+  summary:
+    name: Test Summary
+    runs-on: ubuntu-latest
+    needs: [backend-tests, frontend-tests, backend-build, frontend-build]
+    if: always()
+
+    steps:
+      - name: Check results
+        run: |
+          echo "Pipeline Summary:"
+          echo "Backend Tests: ${{ needs.backend-tests.result }}"
+          echo "Frontend Tests: ${{ needs.frontend-tests.result }}"
+          echo "Backend Build: ${{ needs.backend-build.result }}"
+          echo "Frontend Build: ${{ needs.frontend-build.result }}"
+
+      - name: Fail if any dependency failed or was cancelled
+        if: contains(needs.*.result, 'failure') || contains(needs.*.result, 'cancelled')
+        run: exit 1
