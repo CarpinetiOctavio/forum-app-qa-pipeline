@@ -28,6 +28,8 @@ Use SonarCloud for static analysis, via `SonarSource/sonarqube-scan-action` as a
 
 **CI-based analysis, not Automatic Analysis.** SonarCloud's "Automatic Analysis" and CI-based analysis conflict if both are enabled simultaneously. CI-based analysis is the correct mode for a project that already has a pipeline driving every check.
 
+**New Code Definition set to "Number of days: 30", not the "Previous Version" default.** SonarCloud's default Quality Gate includes a "Coverage on New Code" condition, evaluated against whatever the project's New Code Definition considers "new." With the default ("Previous Version"), a commit that only extracts a constant or renames something — with no corresponding new test, because there's no new behavior to test — can register as 0.0% coverage on new code and fail the gate on work that doesn't need a test. This is a known gotcha carried forward from `-legacy`'s real SonarCloud implementation (see `docs/audits/qa-pipeline-legacy-transferable-knowledge-results.md`), not something to rediscover here: the fix is a project-settings change in SonarCloud (New Code Definition → 30 days), not a `sonar-project.properties` change.
+
 ## Alternatives considered and rejected
 
 | Alternative | Reason not chosen |
