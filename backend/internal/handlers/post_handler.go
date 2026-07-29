@@ -7,8 +7,8 @@ import (
 	"net/http"
 	"strconv"
 
-	"forum-app-ci-testing/internal/models"
-	"forum-app-ci-testing/internal/services"
+	"forum-app-qa-pipeline/internal/models"
+	"forum-app-qa-pipeline/internal/services"
 	"github.com/gorilla/mux"
 )
 

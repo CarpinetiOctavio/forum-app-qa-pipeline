@@ -7,6 +7,21 @@ Database, Models are deliberately excluded — that is a documented decision, no
 gap. Don't propose adding coverage requirements to an excluded layer without a new
 ADR justifying why the original exclusion no longer holds.
 
+## Branch protection ruleset must track new pipeline jobs
+The ruleset on `main`/`staging` was imported from `ci-testing` and, as of this
+repo's starter setup, has exactly one required status check: `Test Summary` —
+the job name inherited from `ci-testing`'s own pipeline. It does not
+automatically pick up new jobs added later.
+
+When the SonarCloud and Cypress jobs are added to `ci.yml`, they must also be
+added by hand as required status checks (Settings → Rules → edit the ruleset →
+add each new job's exact name under "Require status checks to pass"). Skipping
+this step means the quality gates TP7 declares (block the pipeline if SonarCloud
+or Cypress fails) exist in the workflow file but don't actually block a merge —
+the ruleset would still only be watching `Test Summary`. Treat "add a new
+required job" as part of implementing that job, not a follow-up task to
+remember separately.
+
 ## Before changing `sonar.coverage.exclusions` or any SonarCloud config
 An exclusion added to make the Quality Gate pass is not a valid reason on its own —
 it needs the same justification bar as an ADR (why this file/layer shouldn't be

@@ -4,9 +4,9 @@ import (
 	"strings"
 	"testing"
 
-	"forum-app-ci-testing/internal/models"
-	"forum-app-ci-testing/internal/services"
-	"forum-app-ci-testing/tests/mocks"
+	"forum-app-qa-pipeline/internal/models"
+	"forum-app-qa-pipeline/internal/services"
+	"forum-app-qa-pipeline/tests/mocks"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"

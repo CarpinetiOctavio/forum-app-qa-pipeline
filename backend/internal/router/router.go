@@ -3,7 +3,7 @@ package router
 import (
 	"net/http"
 
-	"forum-app-ci-testing/internal/handlers"
+	"forum-app-qa-pipeline/internal/handlers"
 
 	"github.com/gorilla/mux"
 )

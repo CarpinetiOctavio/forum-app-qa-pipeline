@@ -3,7 +3,7 @@ package repository
 import (
 	"database/sql"
 
-	"forum-app-ci-testing/internal/models"
+	"forum-app-qa-pipeline/internal/models"
 )
 
 // UserRepository defines the operations on users
