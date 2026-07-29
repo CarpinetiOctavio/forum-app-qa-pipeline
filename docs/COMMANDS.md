@@ -1,149 +1,54 @@
-# Command Reference
+# COMMANDS.md — forum-app-qa-pipeline
 
-## Backend (Go)
+Commands that work today, against this repo's current state (inherited from
+`forum-app-ci-testing@v1.1.0`). Sections for SonarCloud, Cypress, and the
+coverage gate are added here once those pieces actually exist in this repo —
+see `docs/rules/documentation.md`.
+
+## Backend
 
 ```bash
 cd backend
 
-# Run the server
+# Run the server (http://localhost:8080)
 go run cmd/api/main.go
 
-# Build a binary
-go build -o app cmd/api/main.go
-
-# Run all unit tests, verbose
+# Run all unit tests
 go test ./tests/services/... -v
 
-# Run with coverage
-go test ./tests/services/... -v -cover
+# Run with coverage (measures internal/services/ only — see ADR-001 once written)
+go test ./tests/services/... -v -cover -coverpkg=./internal/services/...
 
-# Coverage profile + HTML report
-go test ./tests/services/... -coverprofile=coverage.out
+# Generate an HTML coverage report
+go test ./tests/services/... -coverprofile=coverage.out -coverpkg=./internal/services/...
 go tool cover -html=coverage.out
+
+# Coverage summary in terminal
 go tool cover -func=coverage.out
-
-# Run a single test
-go test ./tests/services/... -v -run TestRegister_EmptyEmail
-
-# Tidy dependencies
-go mod tidy
 ```
 
-## Frontend (React)
+## Frontend
 
 ```bash
 cd frontend
 
-# Start the dev server
+# Run the dev server (http://localhost:3000)
 npm start
 
-# Run all tests once (CI mode)
+# Run tests once
 npm test -- --watchAll=false
 
-# Run with coverage
+# Run tests with coverage
 npm test -- --coverage --watchAll=false
-
-# Run a single test file
-npm test -- Login.test.tsx --watchAll=false
-
-# Production build
-npm run build
 ```
 
-## Both suites
+## Git / branching
 
 ```bash
-cd backend && go test ./tests/services/... -v && cd ../frontend && npm test -- --watchAll=false
-```
+# Feature branches merge into staging, staging merges into main
+git checkout -b feature/<name> staging
 
-## CI
-
-The pipeline (`.github/workflows/ci.yml`) runs automatically on every push or
-pull request to `main`, `master`, or `develop`. To trigger a run without a
-code change:
-
-```bash
-git commit --allow-empty -m "chore: trigger pipeline"
-git push origin main
-```
-
-View results at:
-`https://github.com/CarpinetiOctavio/forum-app-ci-testing/actions`
-
-## Git history evidence
-
-Used to capture the branching-model screenshots
-(`docs/screenshots/09-git-history-before-branching.png` and
-`10a`/`10b-git-history-after-branching-*.png`):
-
-```bash
-git log --graph --all --decorate --format="%C(yellow)%h%C(reset) %C(cyan)%ad%C(reset)%C(auto)%d%C(reset) %s %C(green)(%an)%C(reset)" --date=short
-```
-
-`--all` shows every local branch, not just the checked-out one; the `%d` in
-`--format` is what actually prints ref/tag labels (`HEAD -> ...`, `origin/main`,
-`v1.0.0`) inline on the graph — `--decorate` alone has no effect once a custom
-`--format` is supplied.
-
-## Verifying test isolation
-
-These are manual checks, not automated ones — they demonstrate that the mocking
-strategy (see ADR-003) actually isolates tests from the dependencies it claims
-to isolate them from, rather than just asserting that it does.
-
-**Backend tests do not depend on a real database:**
-```bash
-rm -f backend/database.db
-cd backend && go test ./tests/services/... -v
-# Passes identically with no database.db present — the Repository layer is
-# mocked (tests/mocks/), the real SQLite file is never touched
-```
-
-**Frontend tests do not depend on a running backend:**
-```bash
-# Do not start the backend for this — go straight to the frontend
-cd frontend && npm test -- --watchAll=false
-# Passes identically with no backend process running on :8080 — axios is
-# mocked (src/__mocks__/axios.ts), no HTTP request ever leaves the process
-```
-
-**Tests are deterministic across repeated runs:**
-```bash
-cd backend
-for i in {1..10}; do go test ./tests/services/... -v; done
-# All 10 runs produce the same 24/24 pass result — mocks return fixed,
-# pre-configured values, so there is no shared or accumulating state between runs
-```
-
-## Troubleshooting
-
-**Backend won't start (port in use):**
-```bash
-lsof -i :8080
-kill -9 <PID>
-```
-
-**Frontend won't start / stale dependencies:**
-```bash
-cd frontend
-rm -rf node_modules package-lock.json
-npm install
-```
-
-**`npm ci` fails in CI with a lockfile mismatch:**
-See ADR-005 — regenerate the lockfile locally and commit it:
-```bash
-cd frontend
-rm package-lock.json
-npm install
-git add package-lock.json
-git commit -m "fix: regenerate package-lock.json"
-```
-
-**Backend tests fail after a fresh clone:**
-```bash
-# Confirm tests don't depend on a local database file
-rm -f backend/database.db
-cd backend && go test ./tests/services/... -v
-# Should pass identically — tests mock the repository layer (see ADR-003)
+# Trigger the CI pipeline manually (empty commit)
+git commit --allow-empty -m "trigger pipeline"
+git push
 ```
