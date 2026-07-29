@@ -1,7 +1,7 @@
 package mocks
 
 import (
-	"forum-app-ci-testing/internal/models"
+	"forum-app-qa-pipeline/internal/models"
 
 	"github.com/stretchr/testify/mock"
 )

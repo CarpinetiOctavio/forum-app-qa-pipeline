@@ -1,4 +1,4 @@
-module forum-app-ci-testing
+module forum-app-qa-pipeline
 
 go 1.24.1
 
