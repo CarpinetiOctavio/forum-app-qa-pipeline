@@ -45,6 +45,18 @@ test code from scratch against this repo's actual implementation — don't adapt
 `-legacy`'s test code, which was never validated against a documented testing
 standard of its own (see that repo's own audit for why).
 
+One specific consequence of "what, not how": `-legacy`'s catalog includes a
+group of `ShouldPropagateError_When...Fails` tests, one per service method,
+each nearly identical — verifying only that an error from the mocked
+repository propagates as-is (see
+`docs/audits/qa-pipeline-legacy-audit-results.md`). The scenario itself (error
+propagation) is worth keeping for each method it applies to; the one-test-per-
+method structure is not. When these are recreated here, consolidate them into
+a single table-driven Go test per service (one `[]struct{...}` of cases, one
+loop with `t.Run` per case) instead of porting one near-identical function per
+method — same scenarios covered, less duplicated setup, and a new method
+needing the same check becomes one more row instead of one more function.
+
 ## Authentication vs. authorization
 This repo inherits `forum-app-ci-testing`'s authentication model as-is (see that
 repo's `ADR-008` for the known limitation and its rationale for deferral). Tests
