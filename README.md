@@ -58,7 +58,8 @@ Each row moves to "in place" in the same commit or PR that implements it — see
 Node is on 24, not the 18 inherited from `ci-testing` — Cypress 13+ requires
 20+, and 24 is the current active LTS rather than a version already past
 end-of-life. `ci-testing` stays on 18 for its own scope, which has no Cypress
-dependency; see the relevant ADR for this repo's own reasoning.
+dependency; see [`ADR-003-cypress.md`](docs/decisions/ADR-003-cypress.md#consequences)
+for this repo's own reasoning.
 
 ---
 
