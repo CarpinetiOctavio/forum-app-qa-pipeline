@@ -7,6 +7,8 @@
 
 TP7's scope adds a coverage gate that blocks the pipeline below a minimum threshold. A coverage percentage is only a meaningful signal if it's measured over code that actually contains business logic — measuring the entire codebase, including HTTP wiring, database setup, and struct definitions, either forces writing low-value tests for trivial code, or produces a precise-looking number that says nothing about whether the business rules are actually verified.
 
+**Why this repo needs its own coverage-strategy ADR, instead of linking to `ci-testing`'s [ADR-002](https://github.com/CarpinetiOctavio/forum-app-ci-testing/blob/main/docs/decisions/ADR-002-testing-scope-services-layer.md):** `ci-testing`'s `ADR-002` settles a *testing-scope* question — which layers get a unit test at all (Services, plus a handful of frontend components with a business-rule branch). It says nothing about a numeric threshold enforced in CI, because `ci-testing` never had a coverage gate — TP6 required demonstrating unit testing and mocking, not a pass/fail percentage. A coverage gate is a distinct concern from testing scope: it's possible to have the right layers under test (as `ci-testing` does) with no threshold blocking the pipeline on a regression, and it's possible to enforce a threshold over the wrong layers. Both questions happen to land on the same boundary here (Services/components), but that's this ADR's own conclusion, arrived at independently below — not inherited by reference, because `ci-testing`'s ADR doesn't address the question this one is answering.
+
 ## Decision
 
 Minimum coverage threshold: **70%**, enforced independently in both backend and frontend:
