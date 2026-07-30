@@ -38,6 +38,16 @@ jobs:
           go build ./...
           go test ./tests/services/... -v -coverprofile=coverage.out -coverpkg=./internal/services/...
 
+      - name: Enforce backend coverage threshold (70%)
+        working-directory: ./backend
+        run: |
+          COVERAGE=$(go tool cover -func=coverage.out | grep total: | awk '{print $3}' | sed 's/%//')
+          echo "Backend coverage (internal/services/): ${COVERAGE}%"
+          if awk -v cov="$COVERAGE" 'BEGIN { exit !(cov < 70) }'; then
+            echo "Coverage ${COVERAGE}% is below the 70% threshold required by ADR-001"
+            exit 1
+          fi
+
       - name: Upload backend coverage artifact
         uses: actions/upload-artifact@v6.0.0
         with:
