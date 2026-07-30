@@ -64,3 +64,20 @@ written here that touch authorization logic (e.g., "only the author can delete")
 must document that they validate the authorization comparison, not identity
 verification — the latter doesn't exist yet in this codebase. Don't write or
 review such a test as if it closes that gap.
+
+**User-existence checks in mutation methods don't add real protection, given
+that same limitation.** `DeleteComment`'s `userRepo.FindByID(userID)` call
+(kept as-is, not backported to `EditComment` or reconciled with `DeletePost`,
+which has no equivalent check) only confirms the given `userID` exists as a
+row in `users` — it can't verify the request actually comes from that user,
+because there's no session or token behind `X-User-ID` for it to check
+against. Any `userID` that has ever authored a post or comment already
+exists in the table by definition, so a forged `X-User-ID` reusing that
+value passes this check the same way a legitimate request would, whether or
+not the check is present. This is why the asymmetry between `DeletePost`
+(no user-existence check), `DeleteComment` (has one), and `EditPost`/
+`EditComment` (neither has one, mirroring `DeletePost`) is being left as-is
+rather than unified: with no real identity verification behind `X-User-ID`,
+none of these checks change what's actually protected, so reconciling them
+— including editing `DeleteComment`, an already-merged method with its own
+tests — isn't worth the risk for a gain that's cosmetic, not functional.
