@@ -2,7 +2,7 @@ name: CI/CD Pipeline
 
 on:
   push:
-    branches: [ 'feature/**' ]
+    branches: [ 'feature/**', staging, main ]
   pull_request:
     branches: [ staging, main ]
 
@@ -79,7 +79,7 @@ jobs:
 
       - name: Install dependencies
         working-directory: ./frontend
-        run: npm ci
+        run: npx --yes npm@12.0.2 ci
 
       - name: Run frontend tests
         working-directory: ./frontend
@@ -136,7 +136,7 @@ jobs:
 
       - name: Install dependencies
         working-directory: ./frontend
-        run: npm ci
+        run: npx --yes npm@12.0.2 ci
 
       - name: Build frontend
         working-directory: ./frontend
