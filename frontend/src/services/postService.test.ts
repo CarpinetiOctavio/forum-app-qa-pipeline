@@ -75,6 +75,31 @@ describe('postService', () => {
     });
   });
 
+  describe('editPost', () => {
+    test('sends title, content and the X-User-ID header to the correct post', async () => {
+      const mockPost = { id: 1, title: 'Updated title', content: 'Updated content', user_id: 1, username: 'testuser', created_at: '2025-01-01' };
+      mockedAxios.put.mockResolvedValueOnce({ data: mockPost });
+
+      const result = await postService.editPost(1, { title: 'Updated title', content: 'Updated content' }, 1);
+
+      expect(mockedAxios.put).toHaveBeenCalledWith(
+        'http://localhost:8080/api/posts/1',
+        { title: 'Updated title', content: 'Updated content' },
+        { headers: { 'X-User-ID': '1' } }
+      );
+      expect(result).toEqual(mockPost);
+    });
+
+    test('propagates the error when the requester is not the author', async () => {
+      const error = new Error('you do not have permission to edit this post');
+      mockedAxios.put.mockRejectedValueOnce(error);
+
+      await expect(
+        postService.editPost(1, { title: 'Updated title', content: 'Updated content' }, 2)
+      ).rejects.toEqual(error);
+    });
+  });
+
   describe('deletePost', () => {
     test('sends the delete request with the X-User-ID header', async () => {
       mockedAxios.delete.mockResolvedValueOnce({ data: undefined });
@@ -137,6 +162,31 @@ describe('postService', () => {
 
       await expect(
         postService.createComment(1, { content: '' }, 1)
+      ).rejects.toEqual(error);
+    });
+  });
+
+  describe('editComment', () => {
+    test('sends content and the X-User-ID header scoped to post and comment', async () => {
+      const mockComment = { id: 2, post_id: 1, user_id: 1, username: 'testuser', content: 'Updated comment', created_at: '2025-01-01' };
+      mockedAxios.put.mockResolvedValueOnce({ data: mockComment });
+
+      const result = await postService.editComment(1, 2, { content: 'Updated comment' }, 1);
+
+      expect(mockedAxios.put).toHaveBeenCalledWith(
+        'http://localhost:8080/api/posts/1/comments/2',
+        { content: 'Updated comment' },
+        { headers: { 'X-User-ID': '1' } }
+      );
+      expect(result).toEqual(mockComment);
+    });
+
+    test('propagates the error when the requester is not the author', async () => {
+      const error = new Error('you do not have permission to edit this comment');
+      mockedAxios.put.mockRejectedValueOnce(error);
+
+      await expect(
+        postService.editComment(1, 2, { content: 'Updated comment' }, 2)
       ).rejects.toEqual(error);
     });
   });

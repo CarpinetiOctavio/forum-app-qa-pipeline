@@ -51,24 +51,80 @@
     color: #f44336;
   }
 
-.comment-delete-btn {
+.comment-delete-btn,
+.comment-edit-btn {
     margin-left: 10px;
     padding: 4px 8px;
-    background-color: #e74c3c;
-    color: #fff;
     border: none;
     border-radius: 3px;
     cursor: pointer;
     font-size: 0.9em;
 }
 
+.comment-delete-btn {
+    background-color: #e74c3c;
+    color: #fff;
+}
+
 .comment-delete-btn:hover {
     background-color: #c0392b;
 }
 
-.comment-delete-btn:disabled {
+.comment-edit-btn {
+    background-color: #4CAF50;
+    color: #fff;
+}
+
+.comment-edit-btn:hover {
+    background-color: #45a049;
+}
+
+.comment-delete-btn:disabled,
+.comment-edit-btn:disabled {
     background-color: #bdc3c7;
     cursor: not-allowed;
+}
+
+.comment-edit-form textarea {
+    width: 100%;
+    padding: 0.6rem;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    font-size: 1rem;
+    font-family: inherit;
+    box-sizing: border-box;
+    resize: vertical;
+    margin-bottom: 0.5rem;
+}
+
+.comment-edit-actions {
+    display: flex;
+    gap: 0.5rem;
+}
+
+.comment-save-btn,
+.comment-cancel-btn {
+    padding: 4px 10px;
+    border: none;
+    border-radius: 3px;
+    cursor: pointer;
+    font-size: 0.9em;
+}
+
+.comment-save-btn {
+    background-color: #4CAF50;
+    color: #fff;
+}
+
+.comment-cancel-btn {
+    background-color: #eee;
+    color: #333;
+}
+
+.comment-edit-form .error-message {
+    color: #c62828;
+    font-size: 0.85em;
+    margin-bottom: 0.5rem;
 }
 
 .success-message {

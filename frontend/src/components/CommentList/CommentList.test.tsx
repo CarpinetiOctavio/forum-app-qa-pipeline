@@ -66,6 +66,90 @@ describe('CommentList Component', () => {
     expect(deleteButtons).toHaveLength(1);
   });
 
+  test("shows the edit button only for the current user's own comments", async () => {
+    mockedAxios.get.mockResolvedValueOnce({ data: mockComments });
+
+    render(<CommentList postId={1} currentUserId={1} />);
+
+    await waitFor(() => {
+      expect(screen.getByText('Mi comentario')).toBeInTheDocument();
+    });
+
+    // There should be exactly 1 edit button (for user 1's comment)
+    const editButtons = screen.queryAllByText(/^edit$/i);
+    expect(editButtons).toHaveLength(1);
+  });
+
+  test('edits a comment when the edit form is submitted', async () => {
+    mockedAxios.get.mockResolvedValueOnce({ data: mockComments });
+    mockedAxios.put.mockResolvedValueOnce({
+      data: { ...mockComments[0], content: 'Comentario editado' }
+    });
+
+    render(<CommentList postId={1} currentUserId={1} />);
+
+    await waitFor(() => {
+      expect(screen.getByText('Mi comentario')).toBeInTheDocument();
+    });
+
+    fireEvent.click(screen.getByText(/^edit$/i));
+
+    const textarea = screen.getByDisplayValue('Mi comentario');
+    fireEvent.change(textarea, { target: { value: 'Comentario editado' } });
+    fireEvent.click(screen.getByText(/^save$/i));
+
+    await waitFor(() => {
+      expect(mockedAxios.put).toHaveBeenCalledWith(
+        'http://localhost:8080/api/posts/1/comments/1',
+        { content: 'Comentario editado' },
+        { headers: { 'X-User-ID': '1' } }
+      );
+    });
+
+    await waitFor(() => {
+      expect(screen.getByText('Comentario editado')).toBeInTheDocument();
+    });
+  });
+
+  test('shows an error and keeps editing open when the edit is rejected', async () => {
+    mockedAxios.get.mockResolvedValueOnce({ data: mockComments });
+    mockedAxios.put.mockRejectedValueOnce({
+      response: { data: { error: 'you do not have permission to edit this comment' } }
+    });
+
+    render(<CommentList postId={1} currentUserId={1} />);
+
+    await waitFor(() => {
+      expect(screen.getByText('Mi comentario')).toBeInTheDocument();
+    });
+
+    fireEvent.click(screen.getByText(/^edit$/i));
+    fireEvent.click(screen.getByText(/^save$/i));
+
+    await waitFor(() => {
+      expect(screen.getByText('you do not have permission to edit this comment')).toBeInTheDocument();
+    });
+
+    // Still in edit mode -- the textarea is still there
+    expect(screen.getByDisplayValue('Mi comentario')).toBeInTheDocument();
+  });
+
+  test('cancels editing without calling the API', async () => {
+    mockedAxios.get.mockResolvedValueOnce({ data: mockComments });
+
+    render(<CommentList postId={1} currentUserId={1} />);
+
+    await waitFor(() => {
+      expect(screen.getByText('Mi comentario')).toBeInTheDocument();
+    });
+
+    fireEvent.click(screen.getByText(/^edit$/i));
+    fireEvent.click(screen.getByText(/^cancel$/i));
+
+    expect(screen.getByText('Mi comentario')).toBeInTheDocument();
+    expect(mockedAxios.put).not.toHaveBeenCalled();
+  });
+
   test('deletes a comment when the delete button is clicked', async () => {
     mockedAxios.get.mockResolvedValueOnce({ data: mockComments });
     mockedAxios.delete.mockResolvedValueOnce({ data: {} });
