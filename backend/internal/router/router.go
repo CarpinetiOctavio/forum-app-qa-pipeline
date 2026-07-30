@@ -23,11 +23,13 @@ func Setup(authHandler *handlers.AuthHandler, postHandler *handlers.PostHandler)
 	router.HandleFunc("/api/posts", postHandler.GetAllPosts).Methods("GET", "OPTIONS")
 	router.HandleFunc("/api/posts", postHandler.CreatePost).Methods("POST", "OPTIONS")
 	router.HandleFunc("/api/posts/{id}", postHandler.GetPostByID).Methods("GET", "OPTIONS")
+	router.HandleFunc("/api/posts/{id}", postHandler.EditPost).Methods("PUT", "OPTIONS")
 	router.HandleFunc("/api/posts/{id}", postHandler.DeletePost).Methods("DELETE", "OPTIONS")
 
 	// Comment routes
 	router.HandleFunc("/api/posts/{id}/comments", postHandler.GetComments).Methods("GET", "OPTIONS")
 	router.HandleFunc("/api/posts/{id}/comments", postHandler.CreateComment).Methods("POST", "OPTIONS")
+	router.HandleFunc("/api/posts/{postId}/comments/{commentId}", postHandler.EditComment).Methods("PUT", "OPTIONS")
 	router.HandleFunc("/api/posts/{postId}/comments/{commentId}", postHandler.DeleteComment).Methods("DELETE", "OPTIONS")
 
 	return router

@@ -39,6 +39,12 @@ func (m *MockPostRepository) FindByID(id int) (*models.Post, error) {
 	return args.Get(0).(*models.Post), args.Error(1)
 }
 
+// Update simulates updating a post
+func (m *MockPostRepository) Update(post *models.Post) error {
+	args := m.Called(post)
+	return args.Error(0)
+}
+
 // Delete simulates deleting a post
 func (m *MockPostRepository) Delete(id int) error {
 	args := m.Called(id)
@@ -60,6 +66,23 @@ func (m *MockPostRepository) FindCommentsByPostID(postID int) ([]*models.Comment
 	}
 
 	return args.Get(0).([]*models.Comment), args.Error(1)
+}
+
+// FindCommentByID simulates looking up a single comment by ID
+func (m *MockPostRepository) FindCommentByID(commentID int) (*models.Comment, error) {
+	args := m.Called(commentID)
+
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+
+	return args.Get(0).(*models.Comment), args.Error(1)
+}
+
+// UpdateComment simulates updating a comment
+func (m *MockPostRepository) UpdateComment(comment *models.Comment) error {
+	args := m.Called(comment)
+	return args.Error(0)
 }
 
 // DeleteComment simulates deleting a comment
