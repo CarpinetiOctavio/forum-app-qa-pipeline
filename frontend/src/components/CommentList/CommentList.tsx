@@ -92,7 +92,15 @@ const CommentList: React.FC<CommentListProps> = ({
 
     if (loading) return <div className="comments-loading">Loading comments...</div>;
     if (error) return <div className="comments-error">{error}</div>;
-    if (comments.length === 0) return <div className="no-comments">No comments yet. Be the first to comment!</div>;
+
+    if (comments.length === 0) {
+        return (
+            <div className="comment-list">
+                {successMessage && <div className="success-message">{successMessage}</div>}
+                <div className="no-comments">No comments yet. Be the first to comment!</div>
+            </div>
+        );
+    }
 
     return (
         <div className="comment-list">
