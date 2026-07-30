@@ -121,6 +121,14 @@ describe("Another user's comment", () => {
     cy.contains(otherUsersComment.content).should('be.visible');
     cy.get('.comment-edit-btn').should('not.exist');
   });
+
+  it('does not show the delete button', () => {
+    cy.intercept('GET', '**/api/posts/1/comments', { statusCode: 200, body: [otherUsersComment] });
+    visitPostDetail();
+
+    cy.contains(otherUsersComment.content).should('be.visible');
+    cy.get('.comment-delete-btn').should('not.exist');
+  });
 });
 
 describe('Delete Comment', () => {

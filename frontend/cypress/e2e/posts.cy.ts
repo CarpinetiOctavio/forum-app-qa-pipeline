@@ -66,6 +66,23 @@ describe('Validation', () => {
       .should('have.prop', 'validity')
       .and('have.property', 'valueMissing', true);
   });
+
+  it('shows the server error when the title is below the 3-character minimum', () => {
+    // HTML5 required is satisfied (non-empty) but the service's own
+    // minimum-length rule isn't -- this exercises the server-rejection
+    // path, not the client-side required check the other two tests cover.
+    cy.intercept('POST', '**/api/posts', {
+      statusCode: 400,
+      body: { error: 'title must be at least 3 characters' },
+    }).as('createPost');
+
+    cy.get('input[placeholder*="title"]').type('ab');
+    cy.get('textarea[placeholder*="share"]').type('Some content');
+    cy.contains('button', 'Publish Post').click();
+
+    cy.wait('@createPost');
+    cy.contains('title must be at least 3 characters').should('be.visible');
+  });
 });
 
 describe('Edit Post', () => {
