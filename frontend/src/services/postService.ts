@@ -1,5 +1,5 @@
 import axios from 'axios';
-import { Post, CreatePostRequest, Comment, CreateCommentRequest } from '../types';
+import { Post, CreatePostRequest, Comment, CreateCommentRequest, EditPostRequest, EditCommentRequest } from '../types';
 
 const API_URL = 'http://localhost:8080/api/posts';
 
@@ -26,6 +26,16 @@ export const postService = {
     return response.data;
   },
 
+  // Edit an existing post
+  async editPost(id: number, data: EditPostRequest, userId: number): Promise<Post> {
+    const response = await axios.put<Post>(`${API_URL}/${id}`, data, {
+      headers: {
+        'X-User-ID': userId.toString()
+      }
+    });
+    return response.data;
+  },
+
   // Delete a post
   async deletePost(id: number, userId: number): Promise<void> {
     await axios.delete(`${API_URL}/${id}`, {
@@ -45,6 +55,20 @@ export const postService = {
   async createComment(postId: number, data: CreateCommentRequest, userId: number): Promise<Comment> {
     const response = await axios.post<Comment>(
       `${API_URL}/${postId}/comments`,
+      data,
+      {
+        headers: {
+          'X-User-ID': userId.toString()
+        }
+      }
+    );
+    return response.data;
+  },
+
+  // Edit an existing comment
+  async editComment(postId: number, commentId: number, data: EditCommentRequest, userId: number): Promise<Comment> {
+    const response = await axios.put<Comment>(
+      `${API_URL}/${postId}/comments/${commentId}`,
       data,
       {
         headers: {

@@ -30,6 +30,80 @@
     color: #333;
     margin-bottom: 1rem;
   }
+
+  .post-detail-title-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 1rem;
+  }
+
+  .post-detail-title-row h1 {
+    margin-bottom: 0;
+  }
+
+  .edit-btn {
+    padding: 0.4rem 0.9rem;
+    background-color: #4CAF50;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 0.9rem;
+    flex-shrink: 0;
+  }
+
+  .edit-btn:hover {
+    background-color: #45a049;
+  }
+
+  .post-detail-edit-form input,
+  .post-detail-edit-form textarea {
+    width: 100%;
+    padding: 0.75rem;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    font-size: 1rem;
+    font-family: inherit;
+    box-sizing: border-box;
+    margin-bottom: 1rem;
+  }
+
+  .post-detail-edit-form textarea {
+    resize: vertical;
+    min-height: 100px;
+  }
+
+  .post-detail-edit-actions {
+    display: flex;
+    gap: 0.75rem;
+  }
+
+  .post-detail-edit-actions button {
+    padding: 0.6rem 1.2rem;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 1rem;
+  }
+
+  .post-detail-edit-actions button[type="submit"] {
+    background-color: #4CAF50;
+    color: white;
+  }
+
+  .post-detail-edit-actions button[type="button"] {
+    background-color: #eee;
+    color: #333;
+  }
+
+  .post-detail-edit-form .error-message {
+    background-color: #ffebee;
+    color: #c62828;
+    padding: 0.75rem;
+    border-radius: 4px;
+    margin-bottom: 1rem;
+  }
   
   .post-detail-meta {
     display: flex;
