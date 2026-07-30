@@ -154,6 +154,136 @@ func TestCreatePost_EmptyContent(t *testing.T) {
 	mockUserRepo.AssertNotCalled(t, "FindByID")
 }
 
+// TestGetAllPosts_Success verifies all posts are returned as-is
+func TestGetAllPosts_Success(t *testing.T) {
+	// ARRANGE
+	mockRepo := new(mocks.MockPostRepository)
+	mockUserRepo := new(mocks.MockUserRepository)
+	postService := services.NewPostService(mockRepo, mockUserRepo)
+
+	existingPosts := []*models.Post{
+		{ID: 1, Title: "First Post", Content: "Content 1", UserID: 1, Username: "user1"},
+		{ID: 2, Title: "Second Post", Content: "Content 2", UserID: 2, Username: "user2"},
+	}
+	mockRepo.On("FindAll").Return(existingPosts, nil)
+
+	// ACT
+	posts, err := postService.GetAllPosts()
+
+	// ASSERT
+	assert.NoError(t, err)
+	assert.Equal(t, existingPosts, posts)
+	mockRepo.AssertExpectations(t)
+}
+
+// TestGetAllPosts_Empty verifies an empty list is returned, not nil, when there are no posts
+func TestGetAllPosts_Empty(t *testing.T) {
+	// ARRANGE
+	mockRepo := new(mocks.MockPostRepository)
+	mockUserRepo := new(mocks.MockUserRepository)
+	postService := services.NewPostService(mockRepo, mockUserRepo)
+
+	mockRepo.On("FindAll").Return(nil, nil)
+
+	// ACT
+	posts, err := postService.GetAllPosts()
+
+	// ASSERT
+	assert.NoError(t, err)
+	assert.NotNil(t, posts)
+	assert.Empty(t, posts)
+}
+
+// TestGetAllPosts_RepoError verifies the error is propagated when the repository fails
+func TestGetAllPosts_RepoError(t *testing.T) {
+	// ARRANGE
+	mockRepo := new(mocks.MockPostRepository)
+	mockUserRepo := new(mocks.MockUserRepository)
+	postService := services.NewPostService(mockRepo, mockUserRepo)
+
+	mockRepo.On("FindAll").Return(nil, errors.New("db error"))
+
+	// ACT
+	posts, err := postService.GetAllPosts()
+
+	// ASSERT
+	assert.Error(t, err)
+	assert.Nil(t, posts)
+	assert.Equal(t, "db error", err.Error())
+}
+
+// TestGetPostByID_Success verifies a post is returned when the id is valid and exists
+func TestGetPostByID_Success(t *testing.T) {
+	// ARRANGE
+	mockRepo := new(mocks.MockPostRepository)
+	mockUserRepo := new(mocks.MockUserRepository)
+	postService := services.NewPostService(mockRepo, mockUserRepo)
+
+	existingPost := &models.Post{ID: 1, Title: "Test Post", Content: "Content", UserID: 1, Username: "testuser"}
+	mockRepo.On("FindByID", 1).Return(existingPost, nil)
+
+	// ACT
+	post, err := postService.GetPostByID(1)
+
+	// ASSERT
+	assert.NoError(t, err)
+	assert.Equal(t, existingPost, post)
+	mockRepo.AssertExpectations(t)
+}
+
+// TestGetPostByID_InvalidID verifies the pre-check fails for a non-positive id
+func TestGetPostByID_InvalidID(t *testing.T) {
+	// ARRANGE
+	mockRepo := new(mocks.MockPostRepository)
+	mockUserRepo := new(mocks.MockUserRepository)
+	postService := services.NewPostService(mockRepo, mockUserRepo)
+
+	// ACT
+	post, err := postService.GetPostByID(0)
+
+	// ASSERT
+	assert.Error(t, err)
+	assert.Nil(t, post)
+	assert.Equal(t, "invalid id", err.Error())
+	mockRepo.AssertNotCalled(t, "FindByID")
+}
+
+// TestGetPostByID_NotFound verifies the lookup fails when the post does not exist
+func TestGetPostByID_NotFound(t *testing.T) {
+	// ARRANGE
+	mockRepo := new(mocks.MockPostRepository)
+	mockUserRepo := new(mocks.MockUserRepository)
+	postService := services.NewPostService(mockRepo, mockUserRepo)
+
+	mockRepo.On("FindByID", 999).Return(nil, nil)
+
+	// ACT
+	post, err := postService.GetPostByID(999)
+
+	// ASSERT
+	assert.Error(t, err)
+	assert.Nil(t, post)
+	assert.Equal(t, "post not found", err.Error())
+}
+
+// TestGetPostByID_RepoError verifies the error is propagated when the repository fails
+func TestGetPostByID_RepoError(t *testing.T) {
+	// ARRANGE
+	mockRepo := new(mocks.MockPostRepository)
+	mockUserRepo := new(mocks.MockUserRepository)
+	postService := services.NewPostService(mockRepo, mockUserRepo)
+
+	mockRepo.On("FindByID", 1).Return(nil, errors.New("db error"))
+
+	// ACT
+	post, err := postService.GetPostByID(1)
+
+	// ASSERT
+	assert.Error(t, err)
+	assert.Nil(t, post)
+	assert.Equal(t, "db error", err.Error())
+}
+
 // TestEditPost_Success verifies the author can edit their own post
 func TestEditPost_Success(t *testing.T) {
 	// ARRANGE
@@ -364,6 +494,208 @@ func TestDeletePost_NotTheAuthor(t *testing.T) {
 	// Should NOT call Delete because they don't have permission
 	mockRepo.AssertNotCalled(t, "Delete")
 	mockRepo.AssertExpectations(t)
+}
+
+// TestCreateComment_Success verifies a comment is created successfully
+func TestCreateComment_Success(t *testing.T) {
+	// ARRANGE
+	mockRepo := new(mocks.MockPostRepository)
+	mockUserRepo := new(mocks.MockUserRepository)
+	postService := services.NewPostService(mockRepo, mockUserRepo)
+
+	existingPost := &models.Post{ID: 1, Title: "Test Post", UserID: 1, Username: "testuser"}
+	existingUser := &models.User{ID: 2, Email: "u2@u.com", Username: "user2"}
+
+	mockRepo.On("FindByID", 1).Return(existingPost, nil)
+	mockUserRepo.On("FindByID", 2).Return(existingUser, nil)
+	mockRepo.On("CreateComment", mock.AnythingOfType("*models.Comment")).Return(nil)
+
+	req := &models.CreateCommentRequest{Content: "A comment"}
+
+	// ACT
+	comment, err := postService.CreateComment(1, req, 2)
+
+	// ASSERT
+	assert.NoError(t, err)
+	assert.NotNil(t, comment)
+	assert.Equal(t, "A comment", comment.Content)
+	assert.Equal(t, "user2", comment.Username)
+	mockRepo.AssertExpectations(t)
+	mockUserRepo.AssertExpectations(t)
+}
+
+// TestCreateComment_EmptyContent verifies the pre-check fails when the content is empty
+func TestCreateComment_EmptyContent(t *testing.T) {
+	// ARRANGE
+	mockRepo := new(mocks.MockPostRepository)
+	mockUserRepo := new(mocks.MockUserRepository)
+	postService := services.NewPostService(mockRepo, mockUserRepo)
+
+	req := &models.CreateCommentRequest{Content: ""}
+
+	// ACT
+	comment, err := postService.CreateComment(1, req, 1)
+
+	// ASSERT
+	assert.Error(t, err)
+	assert.Nil(t, comment)
+	assert.Equal(t, "comment content is required", err.Error())
+	mockRepo.AssertNotCalled(t, "FindByID")
+	mockRepo.AssertNotCalled(t, "CreateComment")
+}
+
+// TestCreateComment_PostNotFound verifies creation fails when the parent post does not exist
+func TestCreateComment_PostNotFound(t *testing.T) {
+	// ARRANGE
+	mockRepo := new(mocks.MockPostRepository)
+	mockUserRepo := new(mocks.MockUserRepository)
+	postService := services.NewPostService(mockRepo, mockUserRepo)
+
+	mockRepo.On("FindByID", 999).Return(nil, nil)
+
+	req := &models.CreateCommentRequest{Content: "A comment"}
+
+	// ACT
+	comment, err := postService.CreateComment(999, req, 1)
+
+	// ASSERT
+	assert.Error(t, err)
+	assert.Nil(t, comment)
+	assert.Equal(t, "post not found", err.Error())
+	mockUserRepo.AssertNotCalled(t, "FindByID")
+	mockRepo.AssertNotCalled(t, "CreateComment")
+}
+
+// TestCreateComment_UserNotFound verifies creation fails when the requesting user does not exist
+func TestCreateComment_UserNotFound(t *testing.T) {
+	// ARRANGE
+	mockRepo := new(mocks.MockPostRepository)
+	mockUserRepo := new(mocks.MockUserRepository)
+	postService := services.NewPostService(mockRepo, mockUserRepo)
+
+	existingPost := &models.Post{ID: 1, Title: "Test Post", UserID: 1, Username: "testuser"}
+	mockRepo.On("FindByID", 1).Return(existingPost, nil)
+	mockUserRepo.On("FindByID", 999).Return(nil, nil)
+
+	req := &models.CreateCommentRequest{Content: "A comment"}
+
+	// ACT
+	comment, err := postService.CreateComment(1, req, 999)
+
+	// ASSERT
+	assert.Error(t, err)
+	assert.Nil(t, comment)
+	assert.Equal(t, "user not found", err.Error())
+	mockRepo.AssertNotCalled(t, "CreateComment")
+}
+
+// TestCreateComment_RepoError verifies the error is propagated when the repository fails to create the comment
+func TestCreateComment_RepoError(t *testing.T) {
+	// ARRANGE
+	mockRepo := new(mocks.MockPostRepository)
+	mockUserRepo := new(mocks.MockUserRepository)
+	postService := services.NewPostService(mockRepo, mockUserRepo)
+
+	existingPost := &models.Post{ID: 1, Title: "Test Post", UserID: 1, Username: "testuser"}
+	existingUser := &models.User{ID: 1, Email: "u@u.com", Username: "testuser"}
+
+	mockRepo.On("FindByID", 1).Return(existingPost, nil)
+	mockUserRepo.On("FindByID", 1).Return(existingUser, nil)
+	mockRepo.On("CreateComment", mock.AnythingOfType("*models.Comment")).Return(errors.New("db error"))
+
+	req := &models.CreateCommentRequest{Content: "A comment"}
+
+	// ACT
+	comment, err := postService.CreateComment(1, req, 1)
+
+	// ASSERT
+	assert.Error(t, err)
+	assert.Nil(t, comment)
+	assert.Equal(t, "db error", err.Error())
+}
+
+// TestGetCommentsByPostID_Success verifies all comments for a post are returned
+func TestGetCommentsByPostID_Success(t *testing.T) {
+	// ARRANGE
+	mockRepo := new(mocks.MockPostRepository)
+	mockUserRepo := new(mocks.MockUserRepository)
+	postService := services.NewPostService(mockRepo, mockUserRepo)
+
+	existingPost := &models.Post{ID: 1, Title: "Test Post", UserID: 1, Username: "testuser"}
+	existingComments := []*models.Comment{
+		{ID: 1, PostID: 1, UserID: 1, Username: "testuser", Content: "First comment"},
+		{ID: 2, PostID: 1, UserID: 2, Username: "otheruser", Content: "Second comment"},
+	}
+
+	mockRepo.On("FindByID", 1).Return(existingPost, nil)
+	mockRepo.On("FindCommentsByPostID", 1).Return(existingComments, nil)
+
+	// ACT
+	comments, err := postService.GetCommentsByPostID(1)
+
+	// ASSERT
+	assert.NoError(t, err)
+	assert.Equal(t, existingComments, comments)
+	mockRepo.AssertExpectations(t)
+}
+
+// TestGetCommentsByPostID_PostNotFound verifies the lookup fails when the parent post does not exist
+func TestGetCommentsByPostID_PostNotFound(t *testing.T) {
+	// ARRANGE
+	mockRepo := new(mocks.MockPostRepository)
+	mockUserRepo := new(mocks.MockUserRepository)
+	postService := services.NewPostService(mockRepo, mockUserRepo)
+
+	mockRepo.On("FindByID", 999).Return(nil, nil)
+
+	// ACT
+	comments, err := postService.GetCommentsByPostID(999)
+
+	// ASSERT
+	assert.Error(t, err)
+	assert.Nil(t, comments)
+	assert.Equal(t, "post not found", err.Error())
+	mockRepo.AssertNotCalled(t, "FindCommentsByPostID")
+}
+
+// TestGetCommentsByPostID_Empty verifies an empty list is returned, not nil, when there are no comments
+func TestGetCommentsByPostID_Empty(t *testing.T) {
+	// ARRANGE
+	mockRepo := new(mocks.MockPostRepository)
+	mockUserRepo := new(mocks.MockUserRepository)
+	postService := services.NewPostService(mockRepo, mockUserRepo)
+
+	existingPost := &models.Post{ID: 1, Title: "Test Post", UserID: 1, Username: "testuser"}
+	mockRepo.On("FindByID", 1).Return(existingPost, nil)
+	mockRepo.On("FindCommentsByPostID", 1).Return(nil, nil)
+
+	// ACT
+	comments, err := postService.GetCommentsByPostID(1)
+
+	// ASSERT
+	assert.NoError(t, err)
+	assert.NotNil(t, comments)
+	assert.Empty(t, comments)
+}
+
+// TestGetCommentsByPostID_RepoError verifies the error is propagated when the repository fails
+func TestGetCommentsByPostID_RepoError(t *testing.T) {
+	// ARRANGE
+	mockRepo := new(mocks.MockPostRepository)
+	mockUserRepo := new(mocks.MockUserRepository)
+	postService := services.NewPostService(mockRepo, mockUserRepo)
+
+	existingPost := &models.Post{ID: 1, Title: "Test Post", UserID: 1, Username: "testuser"}
+	mockRepo.On("FindByID", 1).Return(existingPost, nil)
+	mockRepo.On("FindCommentsByPostID", 1).Return(nil, errors.New("db error"))
+
+	// ACT
+	comments, err := postService.GetCommentsByPostID(1)
+
+	// ASSERT
+	assert.Error(t, err)
+	assert.Nil(t, comments)
+	assert.Equal(t, "db error", err.Error())
 }
 
 // newEditCommentFixture returns a post and a comment on it, both authored by
