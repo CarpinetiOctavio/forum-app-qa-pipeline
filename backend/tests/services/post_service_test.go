@@ -189,51 +189,42 @@ func TestEditPost_Success(t *testing.T) {
 	mockRepo.AssertExpectations(t)
 }
 
-// TestEditPost_EmptyTitle verifies the pre-check fails when the title is empty
-func TestEditPost_EmptyTitle(t *testing.T) {
-	// ARRANGE
-	mockRepo := new(mocks.MockPostRepository)
-	mockUserRepo := new(mocks.MockUserRepository)
-	postService := services.NewPostService(mockRepo, mockUserRepo)
-
-	req := &models.EditPostRequest{
-		Title:   "", // empty title
-		Content: "Updated content",
+// TestEditPost_EmptyFields verifies the pre-check fails when title or content is empty
+func TestEditPost_EmptyFields(t *testing.T) {
+	tests := []struct {
+		name    string
+		title   string
+		content string
+		wantErr string
+	}{
+		{"EmptyTitle", "", "Updated content", "title is required"},
+		{"EmptyContent", "Updated Title", "", "content is required"},
 	}
 
-	// ACT
-	post, err := postService.EditPost(1, req, 1)
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			// ARRANGE
+			mockRepo := new(mocks.MockPostRepository)
+			mockUserRepo := new(mocks.MockUserRepository)
+			postService := services.NewPostService(mockRepo, mockUserRepo)
 
-	// ASSERT
-	assert.Error(t, err)
-	assert.Nil(t, post)
-	assert.Equal(t, "title is required", err.Error())
-	// Should NOT even look up the post
-	mockRepo.AssertNotCalled(t, "FindByID")
-	mockRepo.AssertNotCalled(t, "Update")
-}
+			req := &models.EditPostRequest{
+				Title:   tt.title,
+				Content: tt.content,
+			}
 
-// TestEditPost_EmptyContent verifies the pre-check fails when the content is empty
-func TestEditPost_EmptyContent(t *testing.T) {
-	// ARRANGE
-	mockRepo := new(mocks.MockPostRepository)
-	mockUserRepo := new(mocks.MockUserRepository)
-	postService := services.NewPostService(mockRepo, mockUserRepo)
+			// ACT
+			post, err := postService.EditPost(1, req, 1)
 
-	req := &models.EditPostRequest{
-		Title:   "Updated Title",
-		Content: "", // empty content
+			// ASSERT
+			assert.Error(t, err)
+			assert.Nil(t, post)
+			assert.Equal(t, tt.wantErr, err.Error())
+			// Should NOT even look up the post
+			mockRepo.AssertNotCalled(t, "FindByID")
+			mockRepo.AssertNotCalled(t, "Update")
+		})
 	}
-
-	// ACT
-	post, err := postService.EditPost(1, req, 1)
-
-	// ASSERT
-	assert.Error(t, err)
-	assert.Nil(t, post)
-	assert.Equal(t, "content is required", err.Error())
-	mockRepo.AssertNotCalled(t, "FindByID")
-	mockRepo.AssertNotCalled(t, "Update")
 }
 
 // TestEditPost_PostNotFound verifies the edit fails when the post does not exist
@@ -375,6 +366,21 @@ func TestDeletePost_NotTheAuthor(t *testing.T) {
 	mockRepo.AssertExpectations(t)
 }
 
+// newEditCommentFixture returns a post and a comment on it, both authored by
+// user 1 -- shared by EditComment tests that need an existing, editable
+// comment as their starting state.
+func newEditCommentFixture() (*models.Post, *models.Comment) {
+	post := &models.Post{ID: 1, Title: "Test Post", UserID: 1, Username: "testuser"}
+	comment := &models.Comment{
+		ID:       10,
+		PostID:   1,
+		UserID:   1, // The author is user 1
+		Username: "testuser",
+		Content:  "Original content",
+	}
+	return post, comment
+}
+
 // TestEditComment_Success verifies the author can edit their own comment
 func TestEditComment_Success(t *testing.T) {
 	// ARRANGE
@@ -382,14 +388,7 @@ func TestEditComment_Success(t *testing.T) {
 	mockUserRepo := new(mocks.MockUserRepository)
 	postService := services.NewPostService(mockRepo, mockUserRepo)
 
-	existingPost := &models.Post{ID: 1, Title: "Test Post", UserID: 1, Username: "testuser"}
-	existingComment := &models.Comment{
-		ID:       10,
-		PostID:   1,
-		UserID:   1, // The author is user 1
-		Username: "testuser",
-		Content:  "Original content",
-	}
+	existingPost, existingComment := newEditCommentFixture()
 
 	mockRepo.On("FindByID", 1).Return(existingPost, nil)
 	mockRepo.On("FindCommentByID", 10).Return(existingComment, nil)
@@ -508,14 +507,7 @@ func TestEditComment_NotTheAuthor(t *testing.T) {
 	mockUserRepo := new(mocks.MockUserRepository)
 	postService := services.NewPostService(mockRepo, mockUserRepo)
 
-	existingPost := &models.Post{ID: 1, Title: "Test Post", UserID: 1, Username: "testuser"}
-	existingComment := &models.Comment{
-		ID:       10,
-		PostID:   1,
-		UserID:   1, // The author is user 1
-		Username: "testuser",
-		Content:  "Original content",
-	}
+	existingPost, existingComment := newEditCommentFixture()
 
 	mockRepo.On("FindByID", 1).Return(existingPost, nil)
 	mockRepo.On("FindCommentByID", 10).Return(existingComment, nil)
