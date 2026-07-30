@@ -2,6 +2,9 @@
   "name": "frontend",
   "version": "0.1.0",
   "private": true,
+  "allowScripts": {
+    "cypress": true
+  },
   "dependencies": {
     "@testing-library/dom": "^10.4.1",
     "@types/jest": "^27.5.2",

@@ -1,6 +1,7 @@
 # Backend (Go)
 backend/database.db
 backend/*.db
+backend/app
 *.exe
 *.exe~
 *.dll
