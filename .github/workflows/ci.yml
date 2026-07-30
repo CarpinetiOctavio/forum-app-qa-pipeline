@@ -197,7 +197,7 @@ jobs:
           go build -o app cmd/api/main.go
           ./app &
           cd ..
-          npx --yes wait-on http-get://localhost:8080/api/posts --timeout 30000
+          npx --ignore-scripts --yes wait-on@9.1.0 http-get://localhost:8080/api/posts --timeout 30000
 
       - name: Install frontend dependencies
         working-directory: ./frontend
