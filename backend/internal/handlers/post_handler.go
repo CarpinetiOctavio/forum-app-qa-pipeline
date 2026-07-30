@@ -95,6 +95,53 @@ func (h *PostHandler) GetPostByID(w http.ResponseWriter, r *http.Request) {
 	respondWithJSON(w, http.StatusOK, post)
 }
 
+// EditPost handles PUT /api/posts/{id}
+func (h *PostHandler) EditPost(w http.ResponseWriter, r *http.Request) {
+	// Get the ID from the URL
+	vars := mux.Vars(r)
+	id, err := strconv.Atoi(vars["id"])
+	if err != nil {
+		respondWithError(w, http.StatusBadRequest, "invalid ID")
+		return
+	}
+
+	r.Body = http.MaxBytesReader(w, r.Body, maxRequestBodyBytes)
+
+	// Decode the body
+	var req models.EditPostRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		var maxBytesErr *http.MaxBytesError
+		if errors.As(err, &maxBytesErr) {
+			respondWithError(w, http.StatusRequestEntityTooLarge, "request body too large")
+			return
+		}
+		respondWithError(w, http.StatusBadRequest, "invalid JSON")
+		return
+	}
+
+	// Get userID from the header
+	userIDStr := r.Header.Get("X-User-ID")
+	if userIDStr == "" {
+		respondWithError(w, http.StatusUnauthorized, "user not authenticated")
+		return
+	}
+
+	userID, err := strconv.Atoi(userIDStr)
+	if err != nil {
+		respondWithError(w, http.StatusBadRequest, "invalid user ID")
+		return
+	}
+
+	// Call the service
+	post, err := h.postService.EditPost(id, &req, userID)
+	if err != nil {
+		respondWithError(w, http.StatusForbidden, err.Error())
+		return
+	}
+
+	respondWithJSON(w, http.StatusOK, post)
+}
+
 // DeletePost handles DELETE /api/posts/{id}
 func (h *PostHandler) DeletePost(w http.ResponseWriter, r *http.Request) {
 	// Get the ID from the URL
@@ -192,6 +239,54 @@ func (h *PostHandler) GetComments(w http.ResponseWriter, r *http.Request) {
 	}
 
 	respondWithJSON(w, http.StatusOK, comments)
+}
+
+// EditComment handles PUT /api/posts/{postId}/comments/{commentId}
+func (h *PostHandler) EditComment(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	postID, err := strconv.Atoi(vars["postId"])
+	if err != nil {
+		respondWithError(w, http.StatusBadRequest, "invalid post ID")
+		return
+	}
+	commentID, err := strconv.Atoi(vars["commentId"])
+	if err != nil {
+		respondWithError(w, http.StatusBadRequest, "invalid comment ID")
+		return
+	}
+
+	r.Body = http.MaxBytesReader(w, r.Body, maxRequestBodyBytes)
+
+	// Decode the body
+	var req models.EditCommentRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		var maxBytesErr *http.MaxBytesError
+		if errors.As(err, &maxBytesErr) {
+			respondWithError(w, http.StatusRequestEntityTooLarge, "request body too large")
+			return
+		}
+		respondWithError(w, http.StatusBadRequest, "invalid JSON")
+		return
+	}
+
+	userIDStr := r.Header.Get("X-User-ID")
+	if userIDStr == "" {
+		respondWithError(w, http.StatusUnauthorized, "user not authenticated")
+		return
+	}
+	userID, err := strconv.Atoi(userIDStr)
+	if err != nil {
+		respondWithError(w, http.StatusBadRequest, "invalid user ID")
+		return
+	}
+
+	comment, err := h.postService.EditComment(postID, commentID, &req, userID)
+	if err != nil {
+		respondWithError(w, http.StatusForbidden, err.Error())
+		return
+	}
+
+	respondWithJSON(w, http.StatusOK, comment)
 }
 
 // DeleteComment handles DELETE /api/posts/{postId}/comments/{commentId}

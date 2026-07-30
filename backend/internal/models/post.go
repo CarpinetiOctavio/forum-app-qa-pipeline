@@ -18,6 +18,12 @@ type CreatePostRequest struct {
 	Content string `json:"content"`
 }
 
+// EditPostRequest is used to edit an existing post
+type EditPostRequest struct {
+	Title   string `json:"title"`
+	Content string `json:"content"`
+}
+
 // Comment represents a comment on a post
 type Comment struct {
 	ID        int       `json:"id"`
@@ -30,5 +36,10 @@ type Comment struct {
 
 // CreateCommentRequest is used to create a comment
 type CreateCommentRequest struct {
+	Content string `json:"content"`
+}
+
+// EditCommentRequest is used to edit an existing comment
+type EditCommentRequest struct {
 	Content string `json:"content"`
 }

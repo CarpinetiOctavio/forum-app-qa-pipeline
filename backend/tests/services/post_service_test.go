@@ -154,6 +154,147 @@ func TestCreatePost_EmptyContent(t *testing.T) {
 	mockUserRepo.AssertNotCalled(t, "FindByID")
 }
 
+// TestEditPost_Success verifies the author can edit their own post
+func TestEditPost_Success(t *testing.T) {
+	// ARRANGE
+	mockRepo := new(mocks.MockPostRepository)
+	mockUserRepo := new(mocks.MockUserRepository)
+	postService := services.NewPostService(mockRepo, mockUserRepo)
+
+	existingPost := &models.Post{
+		ID:       1,
+		Title:    "Original Title",
+		Content:  "Original content",
+		UserID:   1, // The author is user 1
+		Username: "testuser",
+	}
+
+	mockRepo.On("FindByID", 1).Return(existingPost, nil)
+	mockRepo.On("Update", mock.AnythingOfType("*models.Post")).Return(nil)
+
+	req := &models.EditPostRequest{
+		Title:   "Updated Title",
+		Content: "Updated content",
+	}
+
+	// ACT
+	post, err := postService.EditPost(1, req, 1)
+
+	// ASSERT
+	assert.NoError(t, err)
+	assert.NotNil(t, post)
+	assert.Equal(t, "Updated Title", post.Title)
+	assert.Equal(t, "Updated content", post.Content)
+
+	mockRepo.AssertExpectations(t)
+}
+
+// TestEditPost_EmptyTitle verifies the pre-check fails when the title is empty
+func TestEditPost_EmptyTitle(t *testing.T) {
+	// ARRANGE
+	mockRepo := new(mocks.MockPostRepository)
+	mockUserRepo := new(mocks.MockUserRepository)
+	postService := services.NewPostService(mockRepo, mockUserRepo)
+
+	req := &models.EditPostRequest{
+		Title:   "", // empty title
+		Content: "Updated content",
+	}
+
+	// ACT
+	post, err := postService.EditPost(1, req, 1)
+
+	// ASSERT
+	assert.Error(t, err)
+	assert.Nil(t, post)
+	assert.Equal(t, "title is required", err.Error())
+	// Should NOT even look up the post
+	mockRepo.AssertNotCalled(t, "FindByID")
+	mockRepo.AssertNotCalled(t, "Update")
+}
+
+// TestEditPost_EmptyContent verifies the pre-check fails when the content is empty
+func TestEditPost_EmptyContent(t *testing.T) {
+	// ARRANGE
+	mockRepo := new(mocks.MockPostRepository)
+	mockUserRepo := new(mocks.MockUserRepository)
+	postService := services.NewPostService(mockRepo, mockUserRepo)
+
+	req := &models.EditPostRequest{
+		Title:   "Updated Title",
+		Content: "", // empty content
+	}
+
+	// ACT
+	post, err := postService.EditPost(1, req, 1)
+
+	// ASSERT
+	assert.Error(t, err)
+	assert.Nil(t, post)
+	assert.Equal(t, "content is required", err.Error())
+	mockRepo.AssertNotCalled(t, "FindByID")
+	mockRepo.AssertNotCalled(t, "Update")
+}
+
+// TestEditPost_PostNotFound verifies the edit fails when the post does not exist
+func TestEditPost_PostNotFound(t *testing.T) {
+	// ARRANGE
+	mockRepo := new(mocks.MockPostRepository)
+	mockUserRepo := new(mocks.MockUserRepository)
+	postService := services.NewPostService(mockRepo, mockUserRepo)
+
+	// The post does not exist
+	mockRepo.On("FindByID", 999).Return(nil, nil)
+
+	req := &models.EditPostRequest{
+		Title:   "Updated Title",
+		Content: "Updated content",
+	}
+
+	// ACT
+	post, err := postService.EditPost(999, req, 1)
+
+	// ASSERT
+	assert.Error(t, err)
+	assert.Nil(t, post)
+	assert.Equal(t, "post not found", err.Error())
+	mockRepo.AssertNotCalled(t, "Update")
+}
+
+// TestEditPost_NotTheAuthor verifies only the post's author can edit it
+func TestEditPost_NotTheAuthor(t *testing.T) {
+	// ARRANGE
+	mockRepo := new(mocks.MockPostRepository)
+	mockUserRepo := new(mocks.MockUserRepository)
+	postService := services.NewPostService(mockRepo, mockUserRepo)
+
+	existingPost := &models.Post{
+		ID:       1,
+		Title:    "Original Title",
+		Content:  "Original content",
+		UserID:   1, // The author is user 1
+		Username: "testuser",
+	}
+
+	mockRepo.On("FindByID", 1).Return(existingPost, nil)
+
+	req := &models.EditPostRequest{
+		Title:   "Updated Title",
+		Content: "Updated content",
+	}
+
+	// User 2 attempts to edit user 1's post
+	// ACT
+	post, err := postService.EditPost(1, req, 2)
+
+	// ASSERT
+	assert.Error(t, err)
+	assert.Nil(t, post)
+	assert.Equal(t, "you do not have permission to edit this post", err.Error())
+	mockRepo.AssertNotCalled(t, "Update")
+	mockRepo.AssertExpectations(t)
+}
+
 // TestDeletePost_Success verifies the author can delete their own post
 func TestDeletePost_Success(t *testing.T) {
 	// ARRANGE
@@ -231,6 +372,165 @@ func TestDeletePost_NotTheAuthor(t *testing.T) {
 
 	// Should NOT call Delete because they don't have permission
 	mockRepo.AssertNotCalled(t, "Delete")
+	mockRepo.AssertExpectations(t)
+}
+
+// TestEditComment_Success verifies the author can edit their own comment
+func TestEditComment_Success(t *testing.T) {
+	// ARRANGE
+	mockRepo := new(mocks.MockPostRepository)
+	mockUserRepo := new(mocks.MockUserRepository)
+	postService := services.NewPostService(mockRepo, mockUserRepo)
+
+	existingPost := &models.Post{ID: 1, Title: "Test Post", UserID: 1, Username: "testuser"}
+	existingComment := &models.Comment{
+		ID:       10,
+		PostID:   1,
+		UserID:   1, // The author is user 1
+		Username: "testuser",
+		Content:  "Original content",
+	}
+
+	mockRepo.On("FindByID", 1).Return(existingPost, nil)
+	mockRepo.On("FindCommentByID", 10).Return(existingComment, nil)
+	mockRepo.On("UpdateComment", mock.AnythingOfType("*models.Comment")).Return(nil)
+
+	req := &models.EditCommentRequest{Content: "Updated content"}
+
+	// User 1 edits their own comment
+	// ACT
+	comment, err := postService.EditComment(1, 10, req, 1)
+
+	// ASSERT
+	assert.NoError(t, err)
+	assert.NotNil(t, comment)
+	assert.Equal(t, "Updated content", comment.Content)
+	mockRepo.AssertExpectations(t)
+}
+
+// TestEditComment_EmptyContent verifies the pre-check fails when the content is empty
+func TestEditComment_EmptyContent(t *testing.T) {
+	// ARRANGE
+	mockRepo := new(mocks.MockPostRepository)
+	mockUserRepo := new(mocks.MockUserRepository)
+	postService := services.NewPostService(mockRepo, mockUserRepo)
+
+	req := &models.EditCommentRequest{Content: ""} // empty content
+
+	// ACT
+	comment, err := postService.EditComment(1, 10, req, 1)
+
+	// ASSERT
+	assert.Error(t, err)
+	assert.Nil(t, comment)
+	assert.Equal(t, "comment content is required", err.Error())
+	mockRepo.AssertNotCalled(t, "FindByID")
+	mockRepo.AssertNotCalled(t, "UpdateComment")
+}
+
+// TestEditComment_PostNotFound verifies the edit fails when the parent post does not exist
+func TestEditComment_PostNotFound(t *testing.T) {
+	// ARRANGE
+	mockRepo := new(mocks.MockPostRepository)
+	mockUserRepo := new(mocks.MockUserRepository)
+	postService := services.NewPostService(mockRepo, mockUserRepo)
+
+	// The post does not exist
+	mockRepo.On("FindByID", 999).Return(nil, nil)
+
+	req := &models.EditCommentRequest{Content: "Updated content"}
+
+	// ACT
+	comment, err := postService.EditComment(999, 10, req, 1)
+
+	// ASSERT
+	assert.Error(t, err)
+	assert.Nil(t, comment)
+	assert.Equal(t, "post not found", err.Error())
+	mockRepo.AssertNotCalled(t, "FindCommentByID")
+	mockRepo.AssertNotCalled(t, "UpdateComment")
+}
+
+// TestEditComment_CommentNotFound verifies the edit fails when the comment does not exist
+func TestEditComment_CommentNotFound(t *testing.T) {
+	// ARRANGE
+	mockRepo := new(mocks.MockPostRepository)
+	mockUserRepo := new(mocks.MockUserRepository)
+	postService := services.NewPostService(mockRepo, mockUserRepo)
+
+	existingPost := &models.Post{ID: 1, Title: "Test Post", UserID: 1, Username: "testuser"}
+
+	mockRepo.On("FindByID", 1).Return(existingPost, nil)
+	mockRepo.On("FindCommentByID", 999).Return(nil, nil)
+
+	req := &models.EditCommentRequest{Content: "Updated content"}
+
+	// ACT
+	comment, err := postService.EditComment(1, 999, req, 1)
+
+	// ASSERT
+	assert.Error(t, err)
+	assert.Nil(t, comment)
+	assert.Equal(t, "comment not found", err.Error())
+	mockRepo.AssertNotCalled(t, "UpdateComment")
+}
+
+// TestEditComment_PostMismatch verifies the edit fails when the comment belongs to a different post
+func TestEditComment_PostMismatch(t *testing.T) {
+	// ARRANGE
+	mockRepo := new(mocks.MockPostRepository)
+	mockUserRepo := new(mocks.MockUserRepository)
+	postService := services.NewPostService(mockRepo, mockUserRepo)
+
+	existingPost := &models.Post{ID: 1, Title: "Test Post", UserID: 1, Username: "testuser"}
+	// The comment exists, but belongs to a different post (post 2)
+	existingComment := &models.Comment{ID: 10, PostID: 2, UserID: 1, Username: "testuser", Content: "Original content"}
+
+	mockRepo.On("FindByID", 1).Return(existingPost, nil)
+	mockRepo.On("FindCommentByID", 10).Return(existingComment, nil)
+
+	req := &models.EditCommentRequest{Content: "Updated content"}
+
+	// ACT
+	comment, err := postService.EditComment(1, 10, req, 1)
+
+	// ASSERT
+	assert.Error(t, err)
+	assert.Nil(t, comment)
+	assert.Equal(t, "comment not found", err.Error())
+	mockRepo.AssertNotCalled(t, "UpdateComment")
+}
+
+// TestEditComment_NotTheAuthor verifies only the comment's author can edit it
+func TestEditComment_NotTheAuthor(t *testing.T) {
+	// ARRANGE
+	mockRepo := new(mocks.MockPostRepository)
+	mockUserRepo := new(mocks.MockUserRepository)
+	postService := services.NewPostService(mockRepo, mockUserRepo)
+
+	existingPost := &models.Post{ID: 1, Title: "Test Post", UserID: 1, Username: "testuser"}
+	existingComment := &models.Comment{
+		ID:       10,
+		PostID:   1,
+		UserID:   1, // The author is user 1
+		Username: "testuser",
+		Content:  "Original content",
+	}
+
+	mockRepo.On("FindByID", 1).Return(existingPost, nil)
+	mockRepo.On("FindCommentByID", 10).Return(existingComment, nil)
+
+	req := &models.EditCommentRequest{Content: "Updated content"}
+
+	// User 2 attempts to edit user 1's comment
+	// ACT
+	comment, err := postService.EditComment(1, 10, req, 2)
+
+	// ASSERT
+	assert.Error(t, err)
+	assert.Nil(t, comment)
+	assert.Equal(t, "you do not have permission to edit this comment", err.Error())
+	mockRepo.AssertNotCalled(t, "UpdateComment")
 	mockRepo.AssertExpectations(t)
 }
 
