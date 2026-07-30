@@ -40,7 +40,16 @@ export interface User {
     title: string;
     content: string;
   }
-  
+
   export interface CreateCommentRequest {
+    content: string;
+  }
+
+  export interface EditPostRequest {
+    title: string;
+    content: string;
+  }
+
+  export interface EditCommentRequest {
     content: string;
   }
