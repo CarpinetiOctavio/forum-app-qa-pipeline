@@ -52,6 +52,12 @@ Backend `cmd/` (entry point) is validated by the build succeeding, not by covera
 | `types/**` | Type/interface definitions only |
 | `__mocks__/**` | Test doubles used *by* the tests, not code under test |
 
+**SonarCloud-only** (`cypress/`, outside `frontend/src/` and never part of Jest's `collectCoverageFrom` scope above — this isn't a coverage-gate exclusion, it only exists in `sonar-project.properties`):
+
+| Path | Reason excluded |
+|---|---|
+| `cypress/support/**` | Not a test double — this is real Cypress support code (e.g. the `login` custom command's own `cy.visit`/`cy.get`/`cy.wait` sequence). Excluded because no tool in this pipeline currently instruments it: Jest never executes it, and Cypress doesn't produce a coverage report for its own support files without `@cypress/code-coverage`, which wasn't set up (out of scope for the Cypress work that introduced this file). See Consequences below. |
+
 ## Alternatives considered and rejected
 
 **100% coverage requirement.** Rejected: forces testing of trivial or purely defensive code paths, and incentivizes tests written to satisfy the number rather than to verify behavior.
@@ -66,3 +72,4 @@ Backend `cmd/` (entry point) is validated by the build succeeding, not by covera
 - Because `repository/` is excluded from measurement, any business rule implemented at that layer instead of in `services/` will not be reflected in the coverage number even without a dedicated test for it. This is a known limitation of scoping coverage to `services/` only — the coverage gate alone cannot guarantee every business rule is verified regardless of which layer it happens to live in.
 - The Go build (`cmd/`) and the router are validated by the pipeline succeeding, not by a coverage percentage — a compilation failure or a broken route registration surfaces as a failed build/E2E job rather than a coverage regression.
 - The backend table's `tests/mocks/` row was added when SonarCloud's `sonar.coverage.exclusions` was configured to mirror this table ([ADR-002](ADR-002-sonarcloud.md)) and, being a full-repo scan, made the gap visible: the frontend side already excluded `__mocks__/**` for being test doubles, but the backend table never listed its own equivalent. This isn't a new criterion — the reasoning was already written on the frontend side of this same table — it's applying it to close an asymmetry between the two halves that the `go test -coverpkg=./internal/services/...` gate alone never surfaced, because it never looked outside `services/` in the first place.
+- The `cypress/support/**` exclusion is a known gap, not a deliberate design choice like the rest of this table: SonarCloud's own default Quality Gate condition on new-code coverage (≥80%, distinct from and stricter than this repo's own 70% gate) failed on a PR whose only real application-code change (`CommentList.tsx`) was itself at 85.71% — the failure came entirely from `cypress/support/commands.ts`'s 8 new lines sitting at 0%, confirmed via SonarCloud's own measures API before excluding anything. The exclusion exists because no tool currently measures that code, not because measuring it would be low-value the way `__mocks__/**` or `tests/mocks/` are — `commands.ts` carries real logic (a login sequence other specs depend on). It's revisable the moment Cypress coverage instrumentation (`@cypress/code-coverage` or equivalent) is added to this pipeline; until then, this and any future `cypress/support/**` file carry zero verification signal from any gate in this repo.
