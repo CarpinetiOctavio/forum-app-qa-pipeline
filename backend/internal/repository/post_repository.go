@@ -12,9 +12,12 @@ type PostRepository interface {
 	Create(post *models.Post) error
 	FindAll() ([]*models.Post, error)
 	FindByID(id int) (*models.Post, error)
+	Update(post *models.Post) error
 	Delete(id int) error
 	CreateComment(comment *models.Comment) error
 	FindCommentsByPostID(postID int) ([]*models.Comment, error)
+	FindCommentByID(commentID int) (*models.Comment, error)
+	UpdateComment(comment *models.Comment) error
 	DeleteComment(postID int, commentID int, userID int) error
 }
 
@@ -112,6 +115,13 @@ func (r *SQLitePostRepository) FindByID(id int) (*models.Post, error) {
 	return post, nil
 }
 
+// Update modifies an existing post's title and content
+func (r *SQLitePostRepository) Update(post *models.Post) error {
+	query := `UPDATE posts SET title = ?, content = ? WHERE id = ?`
+	_, err := r.db.Exec(query, post.Title, post.Content, post.ID)
+	return err
+}
+
 // Delete removes a post by ID
 func (r *SQLitePostRepository) Delete(id int) error {
 	query := `DELETE FROM posts WHERE id = ?`
@@ -173,6 +183,42 @@ func (r *SQLitePostRepository) FindCommentsByPostID(postID int) ([]*models.Comme
 	}
 
 	return comments, nil
+}
+
+// FindCommentByID looks up a single comment by ID
+func (r *SQLitePostRepository) FindCommentByID(commentID int) (*models.Comment, error) {
+	query := `
+		SELECT c.id, c.post_id, c.user_id, u.username, c.content, c.created_at
+		FROM comments c
+		JOIN users u ON c.user_id = u.id
+		WHERE c.id = ?
+	`
+
+	comment := &models.Comment{}
+	err := r.db.QueryRow(query, commentID).Scan(
+		&comment.ID,
+		&comment.PostID,
+		&comment.UserID,
+		&comment.Username,
+		&comment.Content,
+		&comment.CreatedAt,
+	)
+
+	if err == sql.ErrNoRows {
+		return nil, nil
+	}
+	if err != nil {
+		return nil, err
+	}
+
+	return comment, nil
+}
+
+// UpdateComment modifies an existing comment's content
+func (r *SQLitePostRepository) UpdateComment(comment *models.Comment) error {
+	query := `UPDATE comments SET content = ? WHERE id = ?`
+	_, err := r.db.Exec(query, comment.Content, comment.ID)
+	return err
 }
 
 func (r *SQLitePostRepository) DeleteComment(postID int, commentID int, userID int) error {

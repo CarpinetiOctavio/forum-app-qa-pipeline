@@ -100,6 +100,48 @@ func (s *PostService) GetPostByID(id int) (*models.Post, error) {
 	return post, nil
 }
 
+// EditPost updates an existing post's title and content (only the author may do so)
+func (s *PostService) EditPost(postID int, req *models.EditPostRequest, userID int) (*models.Post, error) {
+	// Validation 1: Title cannot be empty
+	if strings.TrimSpace(req.Title) == "" {
+		return nil, errors.New("title is required")
+	}
+
+	// Validation 2: Title must be at least 3 characters
+	if len(strings.TrimSpace(req.Title)) < 3 {
+		return nil, errors.New("title must be at least 3 characters")
+	}
+
+	// Validation 3: Content cannot be empty
+	if strings.TrimSpace(req.Content) == "" {
+		return nil, errors.New("content is required")
+	}
+
+	// Validation 4: Post must exist
+	post, err := s.postRepo.FindByID(postID)
+	if err != nil {
+		return nil, err
+	}
+	if post == nil {
+		return nil, errors.New("post not found")
+	}
+
+	// Validation 5: Only the author may edit
+	if post.UserID != userID {
+		return nil, errors.New("you do not have permission to edit this post")
+	}
+
+	// Apply the edit
+	post.Title = strings.TrimSpace(req.Title)
+	post.Content = strings.TrimSpace(req.Content)
+
+	if err := s.postRepo.Update(post); err != nil {
+		return nil, err
+	}
+
+	return post, nil
+}
+
 // DeletePost removes a post (only the author may do so)
 func (s *PostService) DeletePost(postID int, userID int) error {
 	// Validation 1: Post must exist
@@ -185,6 +227,46 @@ func (s *PostService) GetCommentsByPostID(postID int) ([]*models.Comment, error)
 	}
 
 	return comments, nil
+}
+
+// EditComment updates an existing comment's content (only the author may do so)
+func (s *PostService) EditComment(postID int, commentID int, req *models.EditCommentRequest, userID int) (*models.Comment, error) {
+	// Validation 1: Content cannot be empty
+	if strings.TrimSpace(req.Content) == "" {
+		return nil, errors.New("comment content is required")
+	}
+
+	// Validation 2: Post must exist
+	post, err := s.postRepo.FindByID(postID)
+	if err != nil {
+		return nil, err
+	}
+	if post == nil {
+		return nil, errors.New("post not found")
+	}
+
+	// Validation 3: Comment must exist and belong to this post
+	comment, err := s.postRepo.FindCommentByID(commentID)
+	if err != nil {
+		return nil, err
+	}
+	if comment == nil || comment.PostID != postID {
+		return nil, errors.New("comment not found")
+	}
+
+	// Validation 4: Only the author may edit
+	if comment.UserID != userID {
+		return nil, errors.New("you do not have permission to edit this comment")
+	}
+
+	// Apply the edit
+	comment.Content = strings.TrimSpace(req.Content)
+
+	if err := s.postRepo.UpdateComment(comment); err != nil {
+		return nil, err
+	}
+
+	return comment, nil
 }
 
 func (s *PostService) DeleteComment(postID int, commentID int, userID int) error {
