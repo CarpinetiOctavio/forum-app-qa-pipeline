@@ -38,6 +38,7 @@ Coverage is measured only over `backend/internal/services/` and `frontend/src/co
 | `router/` | Route registration only — no conditional logic | Exercised indirectly by every E2E test that hits an endpoint |
 | `database/` | Schema definition and connection setup — configuration, not logic | Out of scope for unit tests; would require integration tests against a real SQLite file |
 | `models/` | Plain structs with JSON tags — no methods, no logic | N/A — nothing to execute |
+| `tests/mocks/` | Test doubles used *by* the tests, not code under test | N/A — same reasoning as the frontend's `__mocks__/**` row, below |
 
 Backend `cmd/` (entry point) is validated by the build succeeding, not by coverage.
 
@@ -64,3 +65,4 @@ Backend `cmd/` (entry point) is validated by the build succeeding, not by covera
 - Backend and frontend coverage scopes are intentionally aligned: `sonar.coverage.exclusions` (see [ADR-002](ADR-002-sonarcloud.md)) and Jest's `collectCoverageFrom` exclude the same categories of non-logic code, so both tools report coverage over comparable ground.
 - Because `repository/` is excluded from measurement, any business rule implemented at that layer instead of in `services/` will not be reflected in the coverage number even without a dedicated test for it. This is a known limitation of scoping coverage to `services/` only — the coverage gate alone cannot guarantee every business rule is verified regardless of which layer it happens to live in.
 - The Go build (`cmd/`) and the router are validated by the pipeline succeeding, not by a coverage percentage — a compilation failure or a broken route registration surfaces as a failed build/E2E job rather than a coverage regression.
+- The backend table's `tests/mocks/` row was added when SonarCloud's `sonar.coverage.exclusions` was configured to mirror this table ([ADR-002](ADR-002-sonarcloud.md)) and, being a full-repo scan, made the gap visible: the frontend side already excluded `__mocks__/**` for being test doubles, but the backend table never listed its own equivalent. This isn't a new criterion — the reasoning was already written on the frontend side of this same table — it's applying it to close an asymmetry between the two halves that the `go test -coverpkg=./internal/services/...` gate alone never surfaced, because it never looked outside `services/` in the first place.
