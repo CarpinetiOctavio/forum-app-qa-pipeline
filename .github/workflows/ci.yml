@@ -69,14 +69,6 @@ jobs:
           node-version: '24'
           package-manager-cache: false
 
-      - name: Cache Node modules
-        uses: actions/cache@a7833574556fa59680c1b7cb190c1735db73ebf0 # v5.0.0
-        with:
-          path: frontend/node_modules
-          key: ${{ runner.os }}-node-${{ hashFiles('frontend/package-lock.json') }}
-          restore-keys: |
-            ${{ runner.os }}-node-
-
       - name: Install dependencies
         working-directory: ./frontend
         run: npx --yes npm@12.0.2 ci
@@ -106,7 +98,17 @@ jobs:
         with:
           go-version: '1.24'
           cache: false
-      
+
+      - name: Cache Go modules
+        uses: actions/cache@a7833574556fa59680c1b7cb190c1735db73ebf0 # v5.0.0
+        with:
+          path: |
+            ~/go/pkg/mod
+            ~/.cache/go-build
+          key: ${{ runner.os }}-go-${{ hashFiles('backend/go.sum') }}
+          restore-keys: |
+            ${{ runner.os }}-go-
+
       - name: Build backend
         working-directory: ./backend
         run: go build -o app cmd/api/main.go
@@ -126,14 +128,6 @@ jobs:
           node-version: '24'
           package-manager-cache: false
       
-      - name: Cache Node modules
-        uses: actions/cache@a7833574556fa59680c1b7cb190c1735db73ebf0 # v5.0.0
-        with:
-          path: frontend/node_modules
-          key: ${{ runner.os }}-node-${{ hashFiles('frontend/package-lock.json') }}
-          restore-keys: |
-            ${{ runner.os }}-node-
-
       - name: Install dependencies
         working-directory: ./frontend
         run: npx --yes npm@12.0.2 ci
@@ -184,6 +178,16 @@ jobs:
         with:
           go-version: '1.24'
           cache: false
+
+      - name: Cache Go modules
+        uses: actions/cache@a7833574556fa59680c1b7cb190c1735db73ebf0 # v5.0.0
+        with:
+          path: |
+            ~/go/pkg/mod
+            ~/.cache/go-build
+          key: ${{ runner.os }}-go-${{ hashFiles('backend/go.sum') }}
+          restore-keys: |
+            ${{ runner.os }}-go-
 
       - name: Setup Node.js
         uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5.0.0
