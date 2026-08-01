@@ -13,6 +13,8 @@ Use Cypress for E2E testing, with `cy.intercept()` mocks standing in for the bac
 
 `DeleteComment` is a special case because its authorization check lives in the repository's SQL `WHERE ... AND user_id = ?` clause, not in the service layer (see [ADR-005](ADR-005-edit-functionality.md)'s design-constraint section) — the existing unit test for it mocks the repository, so it only proves the service forwards whatever the mock returns; the actual comparison is never exercised by any test in this codebase. A mocked Cypress test for this flow would have the same blind spot for the same reason a mocked unit test does: `cy.intercept()` decides what the "backend" returns, so it can't prove the real SQL clause does the comparison correctly. Every other flow (create, edit, delete-post, error handling) keeps its authorization or validation logic in the service layer, where the existing mocked unit tests already exercise it directly — those don't need a non-mocked Cypress test to close the same gap, because the gap doesn't exist there.
 
+See [docs/diagrams/cypress-mocked-vs-real.svg](../diagrams/cypress-mocked-vs-real.svg) for this mocked-vs-real split laid out visually.
+
 ## Rationale
 
 **Cypress over alternatives:**
