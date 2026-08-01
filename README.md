@@ -50,6 +50,15 @@ individually, not just the summary — see
 [`docs/rules/testing-and-quality-gates.md`](docs/rules/testing-and-quality-gates.md)
 for why relying on the summary alone wasn't enough.
 
+The trigger rules themselves — `push` scoped to `feature/**`, `pull_request`
+scoped to `staging`/`main` — mirror the branching model `ci-testing` already
+established; see
+[ci-testing's branching diagram](https://github.com/CarpinetiOctavio/forum-app-ci-testing/blob/main/docs/diagrams/branching-model.svg)
+rather than repeating it here. This pipeline's addition on top of that shape
+is the four extra jobs — coverage gate, SonarCloud, Cypress, and the wider
+ruleset — visible by contrast with
+[ci-testing's own pipeline diagram](https://github.com/CarpinetiOctavio/forum-app-ci-testing/blob/main/docs/diagrams/ci-pipeline-flow.svg).
+
 `ADR-004` documents a pattern this repo hit three separate times: a gate that
 looked like it was protecting something until someone actually checked the
 mechanism — a summary job that never depended on real results, a ruleset that
