@@ -38,7 +38,10 @@ Each row moved to ✅ in the same commit or PR that implemented it — see
 
 ## Pipeline
 
-![CI/CD pipeline](docs/diagrams/ci-cd-pipeline.svg)
+![CI/CD pipeline](docs/diagrams/ci-pipeline.svg)
+
+*7 jobs: tests fan out into builds, static analysis, and E2E in parallel,
+then converge into one summary that gates the merge — see [`ADR-004`](docs/decisions/ADR-004-pipeline-extension.md).*
 
 Every push to a `feature/**` branch, and every direct push to `staging` or
 `main`, runs the same 7-job pipeline — tests, builds, static analysis, and
@@ -55,11 +58,20 @@ branches it was supposed to protect. See
 [`ADR-004`](docs/decisions/ADR-004-pipeline-extension.md#consequences) for
 the full account.
 
+![Gates that looked protective but weren't verified](docs/diagrams/silent-due-to-not-exercising.svg)
+
+*Three unrelated-looking bugs, one shared root cause: a gate whose actual
+mechanism nobody had checked — see [`ADR-004`](docs/decisions/ADR-004-pipeline-extension.md#consequences).*
+
 ---
 
 ## Testing strategy
 
 ![Mocked vs real Cypress](docs/diagrams/cypress-mocked-vs-real.svg)
+
+*20 specs run against `cy.intercept()` mocks; `DeleteComment` alone runs
+against the real backend, because a mocked test would share the same blind
+spot as the unit test it's meant to complement — see [`ADR-003`](docs/decisions/ADR-003-cypress.md).*
 
 Most of this repo's E2E coverage is mocked by design — fast, deterministic,
 and sufficient wherever the service layer's own unit tests already exercise
@@ -71,6 +83,11 @@ against the real backend and a real SQLite database instead. See
 [`ADR-003`](docs/decisions/ADR-003-cypress.md) for the full reasoning,
 including where else in this codebase authorization checks live in the
 service layer vs. the database.
+
+![Where the authorization check lives, per operation](docs/diagrams/edit-delete-authorization-matrix.svg)
+
+*Three of four methods check authorship in Go; `DeleteComment` alone
+delegates that check to the SQL `WHERE` clause instead — see [`ADR-005`](docs/decisions/ADR-005-edit-functionality.md).*
 
 ---
 
