@@ -53,6 +53,8 @@ repository call — not left to a SQL `WHERE` clause that a mocked test can't
 reach. This is not a style preference; it's the difference between a test
 that proves something and one that doesn't.
 
+See [docs/diagrams/edit-delete-authorization-matrix.svg](../diagrams/edit-delete-authorization-matrix.svg) for this asymmetry laid out across all four methods.
+
 ## Scope of the feature itself
 
 Kept intentionally minimal — this exists to make TP7's update-flow
