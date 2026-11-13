@@ -48,3 +48,42 @@ The trade-off is that mocked E2E tests do not validate real backend integration.
 - **`wait-on`'s plain `http://` scheme sends a HEAD request, not GET.** First real CI run failed here: the backend logged a clean startup, but `wait-on http://localhost:8080/api/posts` timed out anyway, because `/api/posts` is registered in `router.go` for `GET, OPTIONS` only — gorilla/mux doesn't map HEAD to GET automatically, so the HEAD request never matched a route and never returned 2XX. Confirmed against `wait-on`'s own documented resource-type prefixes (`http:`/`https:` = HEAD, `http-get:`/`https-get:` = GET), then reproduced and fixed locally before pushing again: `http-get://localhost:8080/api/posts` correctly waits for a real GET 2XX. Any future `wait-on` target against a route that isn't registered for HEAD needs the `-get` variant of its scheme, not the bare one.
 - **`npx --yes wait-on ...` runs an unpinned, on-demand package install with its lifecycle scripts allowed.** SonarCloud flagged this for real (`githubactions:S6505`) once the job actually ran — an unpinned `npx` invocation resolves whatever the latest published version is at CI run time and permits its install scripts to execute, the same supply-chain risk category as an unpinned GitHub Action, just for an npm package instead. Fixed the same way conceptually as the Actions SHA-pinning: `npx --ignore-scripts --yes wait-on@9.1.0 ...`, version pinned to what was actually verified (`npm view wait-on version`), scripts disabled since `wait-on` needs none to run as a CLI. Confirmed locally against the real backend before pushing that the pinned, script-disabled invocation still works.
 - **Same `S6505` rule also flagged the frontend `npm install` step, but `--ignore-scripts` there would break Cypress itself** — its own postinstall is what downloads the Cypress binary; without it, `cypress verify`/`cypress run` have nothing to execute. Cypress's own install docs (`docs.cypress.io/app/get-started/install-cypress`) document the fix for exactly this case: an `allowScripts` field in `package.json` (`{"cypress": true}`) lets npm block every other package's lifecycle scripts while still letting Cypress's own postinstall run. The nuance, found only by testing, not by reading the docs alone: `allowScripts`-based blocking is a native npm behavior that only activates starting npm 12.0.0 (npm 11.16.0 -- what Node 24 currently bundles, and what this job's runner actually has -- only warns, doesn't block; confirmed by installing under both versions and diffing the result). The CI step accounts for this by running the install through a pinned, non-default npm itself: `npx --yes npm@12.0.2 install` (no `--ignore-scripts` on this outer `npx` -- that flag blocks unconditionally, bypassing `allowScripts` entirely, confirmed by testing that combination first and getting the same broken result as omitting `allowScripts` altogether). Verified end to end before pushing: a clean install blocked 4 unrelated packages' scripts, left Cypress's binary installed and `cypress verify`-clean, and all 21 specs still passed against it.
+
+## Amendment (2026-11-12): the frontend is started in its own step and waited for with `wait-on`
+
+**What failed.** The action's own wait for the frontend (its `start`,
+`wait-on` and `wait-on-timeout` inputs) ended within about 25 ms of its 60 s
+timeout, with "Socket closed before the connection was established", in both
+attempts of run `43374818876`: it does not retry that error. The runtime cause
+behind the error was not reproduced in this repository, and the fix below does
+not depend on it.
+
+**Decision.** The frontend starts in its own step and is waited for with the
+tool this job already uses for the backend:
+
+```yaml
+- name: Start the frontend dev server
+  working-directory: ./frontend
+  run: |
+    npm start &
+    npx --ignore-scripts --yes wait-on@9.1.0 http-get://localhost:3000 --timeout 60000
+```
+
+The action's `start`, `wait-on` and `wait-on-timeout` inputs are removed.
+`wait-on` treats any request error as "not ready" and keeps polling until the
+timeout. Run `43382798700`: the frontend was ready about 5 s after starting,
+and all 21 specs passed.
+
+**This brings back the `npm start &` the Rationale above rejected**, for two
+reasons:
+- *Race conditions:* `wait-on` waits for a real `GET` response before Cypress
+  starts, as it already did for the backend.
+- *Zombie processes:* the claim came from `-legacy`'s notes and was never
+  verified in this repository. GitHub-hosted runners terminate the processes a
+  job leaves running when the job ends: run `43382798700` logs
+  "Terminate orphan process" for both `app` and `npm start`. The same applies
+  to the backend's `./app &`, which this ADR started in the background without
+  addressing it.
+
+The action's built-in wait stops being a reason for choosing Cypress; the
+other reasons in the Rationale stand.

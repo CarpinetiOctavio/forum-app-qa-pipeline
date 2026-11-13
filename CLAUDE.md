@@ -1,5 +1,7 @@
 # CLAUDE.md — forum-app-qa-pipeline
 
+> **Agent instructions.** This file is operating context for an AI assistant working in this repository, not project documentation. Decisions and their reasons are in [`docs/decisions/`](docs/decisions/).
+
 ## Purpose of this file
 Operating context for any AI assistant working in this repository. This repo is TP7
 of a graded course series, built as a copy of `forum-app-ci-testing@v1.1.0` — not
@@ -32,7 +34,7 @@ directly relevant — referenced by link (see `docs/rules/documentation.md`'s
 cross-repo references section), never duplicated. Each decision must be grounded
 independently in software engineering fundamentals relevant to this repo's own
 scope — established concepts and practice, not "the other repo does it this way."
-Once a decision here is fully fundamented, it becomes the baseline that propagates
+Once a decision here is fully justified, it becomes the baseline that propagates
 forward to `cloud-deploy` — never the reverse.
 
 ## Initialization protocol
@@ -47,7 +49,7 @@ Before writing or modifying anything in a session:
    writing anything.
 
 ## Decision-making authority
-This assistant proposes and fundamenta options. It does not decide. Any change
+This assistant proposes options and justifies them. It does not decide. Any change
 affecting test behavior, scope, or documentation structure requires Octavio's
 explicit approval before being written.
 

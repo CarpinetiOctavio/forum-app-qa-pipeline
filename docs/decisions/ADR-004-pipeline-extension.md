@@ -58,3 +58,28 @@ Both live inside the existing `backend-tests`/`frontend-tests` jobs rather than 
 - **`node_modules` caching was removed from `frontend-tests`/`frontend-build`; Go module caching was added to `backend-build` and `cypress-e2e`'s backend build step — asymmetric on purpose, not an inconsistency.** Triggered by `cypress-e2e`'s `npm install` step taking 11m35s on one run, suspected to be a missing-cache problem. It wasn't: that same step took 31s and 37s on two runs the day before with the identical command and no cache either — the 11m35s was a one-off, almost certainly a transient npm registry/network hiccup on GitHub's runner infrastructure, not a config problem. Checked the caching question anyway, since it was already on the table, with real before/after numbers rather than assumption in either direction: `frontend-tests`' existing `node_modules` cache showed a cache **hit** taking 32s and a forced cache **miss** taking 23s — the miss was faster, confirming `npm ci`/`install` always wipe and fully reinstall `node_modules` regardless of what's cached, so that cache step was pure overhead with no benefit, removed rather than left as dead code that looks intentional. Go behaves differently: `backend-build` uncached took ~49s for `go build` alone; `backend-tests`, with its existing Go module cache hit, ran `go mod download` + `go build` + the full test suite in ~7s — a real, large difference, because Go's cache holds compiled build objects the compiler reuses, not just downloaded-but-still-relinked-every-time package files the way the `node_modules` cache did. `backend-build` and `cypress-e2e` didn't have this cache before; both do now, for the same verified reason `backend-tests` already had it.
 
 See [docs/diagrams/ci-pipeline.svg](../diagrams/ci-pipeline.svg) for the final job shape this ADR and its Consequences describe.
+
+## Amendment (2026-11-12): the push trigger, the "second instance", and the gate that was really silent
+
+**The push trigger on `staging` and `main`.** The Consequences above added
+`push` to `staging` and `main` without saying why that does not repeat what
+`forum-app-ci-testing`'s
+[ADR-004](https://github.com/CarpinetiOctavio/forum-app-ci-testing/blob/main/docs/decisions/ADR-004-ci-pipeline-design.md)
+rejected: push and pull request triggers on the same branch, because a direct
+push could skip the pull request. Here the ruleset requires a pull request on
+both branches and has no bypass, so a direct push is rejected; the push
+trigger only runs on the merge commit a pull request produces.
+
+**The "second instance" was not a gap.** The Consequences above present the
+ruleset watching only `Test Summary` as a case where a job could fail without
+blocking a merge. In the 12 commits that touch `ci.yml`, every new job entered
+`summary`'s `needs` in the same commit; `summary` fails on any `failure` or
+`cancelled` dependency; and `Test Summary` was always a required check. The
+six individual checks were added for a different reason, recorded in
+`docs/rules/testing-and-quality-gates.md`. The diagram
+`silent-due-to-not-exercising.svg` is corrected accordingly.
+
+**The real instance.** The SonarCloud job passed while the quality gate was
+red, because nothing waited for the gate (commit `2c58765`, run
+`30714893286`). It is corrected in
+[ADR-002's amendment](ADR-002-sonarcloud.md#amendment-2026-11-12-the-quality-gate-now-blocks-on-the-path-to-main-within-the-free-plans-limits).
