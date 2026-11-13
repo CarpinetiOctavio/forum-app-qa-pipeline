@@ -2,7 +2,7 @@
 
 [![CI/CD Pipeline](https://github.com/CarpinetiOctavio/forum-app-qa-pipeline/actions/workflows/ci.yml/badge.svg)](https://github.com/CarpinetiOctavio/forum-app-qa-pipeline/actions/workflows/ci.yml)
 
-I added three quality gates to the unit-test pipeline of the first repository: a 70% coverage threshold, SonarCloud static analysis and Cypress end-to-end tests. Every push to `feature/**`, `staging` or `main`, and every pull request into `staging` or `main`, runs seven jobs: 50 backend tests at 88.2% coverage of the Services layer, 51 frontend tests, and 21 Cypress tests, 19 against mocked responses and 2 against the real backend and database ([run `43384887706`](https://github.com/CarpinetiOctavio/forum-app-qa-pipeline/actions/runs/43384887706)). A ruleset requires all seven checks before a merge into `staging` or `main`; on a pull request into `main`, a failing SonarCloud quality gate fails its job and blocks the merge ([PR #59](https://github.com/CarpinetiOctavio/forum-app-qa-pipeline/pull/59), [screenshot](docs/screenshots/09-quality-gate-blocks-pr-into-main.png)).
+This repository adds three quality gates to the unit-test pipeline of the first one: a 70% coverage threshold, SonarCloud static analysis and Cypress end-to-end tests. Every push to `feature/**`, `staging` or `main`, and every pull request into `staging` or `main`, runs seven jobs: 50 backend tests at 88.2% coverage of the Services layer, 51 frontend tests, and 21 Cypress tests, 19 against mocked responses and 2 against the real backend and database ([run `43384887706`](https://github.com/CarpinetiOctavio/forum-app-qa-pipeline/actions/runs/43384887706)). A ruleset requires all seven checks before a merge into `staging` or `main`; on a pull request into `main`, a failing SonarCloud quality gate fails its job and blocks the merge ([PR #59](https://github.com/CarpinetiOctavio/forum-app-qa-pipeline/pull/59), [screenshot](docs/screenshots/09-quality-gate-blocks-pr-into-main.png)).
 
 > **Series.** This is the second of three repositories: [ci-testing](https://github.com/CarpinetiOctavio/forum-app-ci-testing) → **qa-pipeline** → [cloud-deploy](https://github.com/CarpinetiOctavio/forum-app-cloud-deploy). The split follows the course's assignments (TP6, TP7, TP8 of Software Engineering III, UCC); in practice it would be one repository with tags.
 
@@ -33,7 +33,7 @@ Closed. This repository started in 2026 as a copy of `forum-app-ci-testing@v1.1.
 - I configured `sonar.sources` and `sonar.tests` so that SonarCloud analyzed almost nothing for over a day; it took four rounds to get them right ([ADR-002](docs/decisions/ADR-002-sonarcloud.md)).
 - My trigger never ran the pipeline on merges into `staging` or `main` ([ADR-004](docs/decisions/ADR-004-pipeline-extension.md)).
 - I left the SonarCloud job green with the quality gate red: nothing waited for the gate ([ADR-002](docs/decisions/ADR-002-sonarcloud.md)).
-- The Cypress action's wait for the frontend ended within milliseconds instead of waiting; I replaced it with `wait-on` ([ADR-003](docs/decisions/ADR-003-cypress.md)).
+- I relied on the Cypress action's own wait for the frontend; it ended within milliseconds instead of waiting, and I replaced it with `wait-on` ([ADR-003](docs/decisions/ADR-003-cypress.md)).
 - I used `wait-on`'s `http://` scheme, which sends `HEAD` to a route that only accepts `GET` ([ADR-003](docs/decisions/ADR-003-cypress.md)).
 - I presented as a gap a ruleset that was already covered by `Test Summary` ([ADR-004](docs/decisions/ADR-004-pipeline-extension.md)).
 - I wrote in ADR-000 that `ci-testing` already ran on Node.js 24; it did not ([ADR-000](docs/decisions/ADR-000-starting-from-ci-testing-v1.1.0.md)).
@@ -61,7 +61,7 @@ Setup, including what the pipeline needs from SonarCloud, is in [`docs/SETUP.md`
 
 ## AI disclosure
 
-Language models (Claude, in chat sessions and through Claude Code) were used to audit the repository, check claims against it, and write text and code. Every design choice was decided by me, Octavio Carpineti. Only some commits carry a `Co-Authored-By` trailer for that use; the record is irregular.
+Language models (Claude, in chat sessions and through Claude Code) were used to audit the repository, check claims against it, and write text and code. Every design choice was decided by Octavio Carpineti. Only some commits carry a `Co-Authored-By` trailer for that use; the record is irregular.
 
 ## License
 
