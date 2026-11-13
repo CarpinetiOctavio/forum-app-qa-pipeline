@@ -15,14 +15,13 @@ Closed. This repository started in 2026 as a copy of `forum-app-ci-testing@v1.1.
 ## What this repository shows
 
 1. **A 70% coverage gate, measured only where the business rules live.** The backend gate covers `internal/services/`, and the frontend gate covers components and services. 100% would reward tests written for the number; measuring wiring and type definitions would make the percentage say nothing ([ADR-001](docs/decisions/ADR-001-coverage-strategy.md)).
-2. **SonarCloud's quality gate blocks the path to `main`.** The scanner waits for the gate on pull requests into `main` and on pushes to `main`; on the Free plan, that is where a gate exists. Waiting on other branches fails the job ([ADR-002](docs/decisions/ADR-002-sonarcloud.md)).
+2. **SonarCloud's quality gate blocks the path to `main`.** The scanner waits for the gate, and a red gate fails the job, on pull requests into `main` and on pushes to `main`: the gate is required only there. On the Free plan, waiting on a push to `feature/**` fails the job ([run `43382798700`](https://github.com/CarpinetiOctavio/forum-app-qa-pipeline/actions/runs/43382798700); [ADR-002](docs/decisions/ADR-002-sonarcloud.md)).
 3. **Cypress against mocked responses, except where a mock would hide the rule.** `DeleteComment` checks authorship in a SQL `WHERE` clause, which a mocked test can't reach; its two tests run against the real backend and SQLite. The other 19 use `cy.intercept()` ([ADR-003](docs/decisions/ADR-003-cypress.md)).
 4. **The slow gates run after the fast ones.** SonarCloud and Cypress wait for the unit-test jobs, in parallel with each other: a failing unit test stops the run before static analysis and E2E spend time on it ([ADR-004](docs/decisions/ADR-004-pipeline-extension.md)).
-5. **The update flow TP7 asks for is a real feature.** `EditPost` and `EditComment` check authorship in the service layer, where a unit test can exercise the comparison, not in SQL ([ADR-005](docs/decisions/ADR-005-edit-functionality.md)).
 
 ## Limitations
 
-- **On the SonarCloud Free plan, the gate exists only on the path to `main`.** Pull requests into `staging` are analyzed (against `main`) but not blocked, and `feature/**` branches are analyzed without a gate. A SonarCloud outage blocks merges into `main` ([ADR-002](docs/decisions/ADR-002-sonarcloud.md)).
+- **The SonarCloud gate is required only on the path to `main`.** Pull requests into `staging` have a gate, measured against `main` on the Free plan, but are not blocked, and `feature/**` branches are analyzed without a gate. A SonarCloud outage blocks merges into `main` ([ADR-002](docs/decisions/ADR-002-sonarcloud.md)).
 - **Mocked E2E tests prove the UI given a response, not that the backend produces it**; only `DeleteComment` runs end to end ([ADR-003](docs/decisions/ADR-003-cypress.md)).
 - **No real authentication.** Authorization tests verify the authorship comparison, not the caller's identity: the app trusts a client-supplied `X-User-ID` header, inherited from [ci-testing's ADR-008](https://github.com/CarpinetiOctavio/forum-app-ci-testing/blob/main/docs/decisions/ADR-008-app-security-scope.md).
 - **`cypress/support/**` is excluded from coverage**: no tool in this pipeline instruments it ([ADR-001](docs/decisions/ADR-001-coverage-strategy.md)).
@@ -31,13 +30,13 @@ Closed. This repository started in 2026 as a copy of `forum-app-ci-testing@v1.1.
 
 ## Errors I found and corrected
 
-- SonarCloud analyzed almost nothing for over a day: four rounds to get `sonar.sources` and `sonar.tests` right ([ADR-002](docs/decisions/ADR-002-sonarcloud.md)).
-- The pipeline never ran on merges into `staging` or `main` ([ADR-004](docs/decisions/ADR-004-pipeline-extension.md)).
-- The SonarCloud job passed with the quality gate red; nothing waited for the gate ([ADR-002](docs/decisions/ADR-002-sonarcloud.md)).
-- The Cypress action's wait for the frontend stopped retrying; replaced with `wait-on` ([ADR-003](docs/decisions/ADR-003-cypress.md)).
-- `wait-on` sent `HEAD` to a route that only accepts `GET` ([ADR-003](docs/decisions/ADR-003-cypress.md)).
+- I configured `sonar.sources` and `sonar.tests` so that SonarCloud analyzed almost nothing for over a day; it took four rounds to get them right ([ADR-002](docs/decisions/ADR-002-sonarcloud.md)).
+- My trigger never ran the pipeline on merges into `staging` or `main` ([ADR-004](docs/decisions/ADR-004-pipeline-extension.md)).
+- I left the SonarCloud job green with the quality gate red: nothing waited for the gate ([ADR-002](docs/decisions/ADR-002-sonarcloud.md)).
+- The Cypress action's wait for the frontend ended within milliseconds instead of waiting; I replaced it with `wait-on` ([ADR-003](docs/decisions/ADR-003-cypress.md)).
+- I used `wait-on`'s `http://` scheme, which sends `HEAD` to a route that only accepts `GET` ([ADR-003](docs/decisions/ADR-003-cypress.md)).
 - I presented as a gap a ruleset that was already covered by `Test Summary` ([ADR-004](docs/decisions/ADR-004-pipeline-extension.md)).
-- ADR-000 stated that `ci-testing` already ran on Node.js 24; it did not ([ADR-000](docs/decisions/ADR-000-starting-from-ci-testing-v1.1.0.md)).
+- I wrote in ADR-000 that `ci-testing` already ran on Node.js 24; it did not ([ADR-000](docs/decisions/ADR-000-starting-from-ci-testing-v1.1.0.md)).
 
 ## Decisions
 
@@ -63,3 +62,7 @@ Setup, including what the pipeline needs from SonarCloud, is in [`docs/SETUP.md`
 ## AI disclosure
 
 Language models (Claude, in chat sessions and through Claude Code) were used to audit the repository, check claims against it, and write text and code. Every design choice was decided by me, Octavio Carpineti. Only some commits carry a `Co-Authored-By` trailer for that use; the record is irregular.
+
+## License
+
+MIT ([LICENSE](LICENSE)).
