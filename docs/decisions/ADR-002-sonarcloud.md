@@ -61,3 +61,69 @@ Use SonarCloud for static analysis, via `SonarSource/sonarqube-scan-action` as a
   | Coverage on New Code (project-wide) | **24.59%** (Quality Gate: failed) | **92.2%** (Quality Gate: `OK`, all 6 conditions passing) |
 
   **This was the same configuration mistake, not four different bugs.** Across backend and frontend, in both directions of the same interaction: declaring a `sonar.tests` root that overlaps `sonar.sources` without the correct counterpart on each side — either a `sonar.tests` root with no matching `sonar.test.inclusions` pattern, or an inclusions pattern with no matching `sonar.tests` root — leaves the affected files classified as neither source nor test, invisible to analysis rather than merely miscounted. `sonar.tests=backend` (bug 1) and the `sonar.test.inclusions`-only frontend fix (bug 3) both failed by pointing one side of that pair at nothing; `sonar.sources` left undeclared (bug 2) and `sonar.tests=backend/tests` alone stopping short of `frontend/src` (bug 4) both failed by leaving the other side incomplete. The fix that actually held, in both languages, was declaring the *same* path on both sides of a colocated source/test directory, and letting `sonar.test.inclusions` disambiguate by pattern within it — never one side of the pair alone.
+
+## Amendment (2026-11-12): the quality gate now blocks on the path to `main`, within the Free plan's limits
+
+**What was wrong.** The SonarCloud job never waited for the quality gate:
+`sonar.qualitygate.wait` was not set, so the job passed whatever the gate said.
+On `main`, commit `2c58765` (merge of PR #42, 2026-08-01) has the SonarCloud
+app's check in `failure` ("Quality Gate failed") and this pipeline's
+`SonarCloud Code Analysis` job in `success` (run `30714893286`). The original
+TP7 submission did not wait for the gate either. Octavio's account of why it
+was not turned on here: the free plan's gate cannot be configured, and at the
+time it failed on coverage measured over test files, so blocking on it was
+deliberately left off. That cause was fixed in the chain above; the blocking
+was not turned on until this amendment.
+
+**The Free plan.** This project's SonarCloud organization is on the Free plan.
+The SonarQube Cloud documentation, consulted on 2026-11-12, states: "Only the
+main branch analysis is available in the Free plan"; pull request analysis is
+available "only when the pull request is merged into the main branch"; custom
+quality gates are "Not available". This ADR's Rationale says the free plan has
+"no feature restrictions on the quality gate", which contradicts its own
+Consequences (no custom gates) and does not hold under the current plan. When
+these restrictions started applying is not stated here.
+
+**Decision.** The scanner waits for the gate (`sonar.qualitygate.wait=true`,
+300 s default timeout) on pushes to `main` and on pull requests into `main`,
+and only there:
+
+```yaml
+args: -Dsonar.qualitygate.wait=${{ github.ref == 'refs/heads/main' || github.base_ref == 'main' }}
+```
+
+**What the runs showed.**
+- Push to a `feature/**` branch with the wait on: the job failed with
+  "Failed to get Quality Gate status - Organization is not allowed to access
+  data from non main branches." (run `43382798700`). That is why the wait is
+  limited to the path to `main`.
+- Pull request into `main` with untested new code (PR #59, a disposable probe,
+  closed without merging): the gate failed on "0.0% Coverage on New Code
+  (required ≥ 80%)", the job failed, and the ruleset blocked the merge
+  (run `43383731898`).
+- Pull request into `staging` (PR #60), without the wait: the job passed.
+  SonarCloud analyzed the pull request with `main` as its base and `staging`
+  as its target, and reported "Quality Gate passed": new code was measured
+  against `main`, not against `staging`.
+
+**Alternatives rejected.**
+- *The OSS plan*, which includes branch and pull request analysis: a change of
+  account with uncertain eligibility, and a gate on `staging` would not change
+  what reaches `main`. Recorded as a limitation instead.
+- *Requiring the SonarCloud app's check in the ruleset*: the problem was that
+  the required check, this pipeline's `SonarCloud Code Analysis` job, did not
+  reflect the gate. With the wait, that same job, already required, fails when
+  the gate fails. Requiring the app's check instead would leave that job green
+  without meaning, and would need a ruleset change.
+
+**Consequences.**
+- The gate is required only on the path to `main`: a red gate blocks a pull
+  request into `main` before the merge. Pull requests into `staging` are
+  analyzed (on the Free plan, against `main`: PR #60) but not blocked, and
+  pushes to `feature/**` are analyzed without a gate.
+- A SonarCloud outage or delay longer than the timeout fails the job, and
+  blocks merges into `main` until it recovers.
+- The project key is `CarpinetiOctavio_forum-app-qa-pipeline2`, not the
+  repository name: the key without the `2` belongs to the SonarCloud project
+  of `forum-app-qa-pipeline-legacy`. The Consequence above that ties the key to
+  the repository name describes the intent, not this key.
