@@ -4,13 +4,13 @@
 
 ```bash
 go version     # 1.24 or higher (see backend/go.mod)
-node --version # 18 or higher (matches .github/workflows/ci.yml)
+node --version # 24 (matches .github/workflows/ci.yml)
 npm --version
 ```
 
-> The Go module was renamed from `tp06-testing` to `forum-app-ci-testing`
-> when this repo was rebuilt as a portfolio piece. Any reference to the old
-> name in git history is intentional and traceable to ADR-004.
+> The Go module is `forum-app-qa-pipeline`. This repository started as a copy
+> of `forum-app-ci-testing@v1.1.0`, so earlier names appear in its history
+> (see ADR-000).
 
 **Installing Go:**
 ```bash
@@ -26,7 +26,7 @@ sudo apt install golang-go
 # macOS
 brew install node
 # Ubuntu/Debian
-curl -fsSL https://deb.nodesource.com/setup_18.x | sudo -E bash -
+curl -fsSL https://deb.nodesource.com/setup_24.x | sudo -E bash -
 sudo apt-get install -y nodejs
 # Windows: https://nodejs.org/
 ```
@@ -34,8 +34,8 @@ sudo apt-get install -y nodejs
 ## Clone and install
 
 ```bash
-git clone https://github.com/CarpinetiOctavio/forum-app-ci-testing.git
-cd forum-app-ci-testing
+git clone https://github.com/CarpinetiOctavio/forum-app-qa-pipeline.git
+cd forum-app-qa-pipeline
 
 cd backend && go mod download && cd ..
 cd frontend && npm install && cd ..
@@ -96,17 +96,16 @@ request, and testing a component only requires mocking `axios` once (via
 `jest.mock('axios')`) rather than stubbing HTTP calls scattered across
 component code.
 
-## What this repo does NOT need
+## What the CI pipeline needs
 
-Unlike the later repos in this series, this repo requires no external
-infrastructure:
-- No GitHub Secrets — the CI pipeline uses no external service (see ADR-004).
-  Coverage is uploaded as an internal pipeline artifact, not to Codecov or
-  any third-party reporting tool.
-- No container registry, no cloud hosting account, no Render/AWS/GCP
-  configuration — those belong to `forum-app-cloud-deploy`.
-- No SonarCloud token — static analysis is out of this repo's scope (see
-  `docs/rules/testing.md`); it belongs to `forum-app-qa-pipeline`.
+- **A SonarCloud project and token.** The project key is
+  `CarpinetiOctavio_forum-app-qa-pipeline2` in the `carpinetioctavio`
+  organization (`sonar-project.properties`; ADR-002 explains the `2`). The
+  token is the repository secret `SONAR_TOKEN`. The organization is on the
+  Free plan, which shows a quality gate only for `main` and for pull requests
+  into `main` (ADR-002).
+- **No container registry, cloud hosting account or deploy credentials** —
+  those belong to `forum-app-cloud-deploy`.
 
-Cloning the repo and running the two install commands above is the entire
-setup.
+Running the app and the tests locally needs only the clone and the two install
+commands above.

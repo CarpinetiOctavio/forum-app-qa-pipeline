@@ -1,5 +1,7 @@
 # Operating rules — testing and quality gates (forum-app-qa-pipeline)
 
+> **Agent instructions.** This file is operating context for an AI assistant working in this repository, not project documentation. Decisions and their reasons are in [`docs/decisions/`](../decisions/).
+
 ## Coverage scope
 The 70% gate applies to `internal/services/` (backend) and the components/services
 layer (frontend), per `ADR-001-coverage-strategy`. Handlers, Repository, Router,

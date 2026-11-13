@@ -129,3 +129,15 @@ achieves the same transparency without that noise.
 - This is the same category of decision `ci-testing`'s own `ADR-000` recorded for
   itself (resolving forward, not mirroring backward) — applied here one stage later
   in the same series, for the same reason.
+
+## Amendment (2026-11-12): two statements about the starting point
+
+- **"`ci-testing` already resolved both: Node 24, and internal artifact
+  uploads"** is half wrong. `ci-testing`'s frontend jobs ran on
+  `node-version: '18'` until its `v1.2.0`; what was at Node.js 24 were the
+  versions of its actions (`ci-testing`'s `1fba25d`). This repository moved to
+  Node.js 24 on its own account, for Cypress, which requires Node.js 20 or
+  newer (`ADR-003`, Consequences).
+- **The five `-legacy` ADRs this ADR describes** are no longer on `-legacy`'s
+  `main`: on 2026-07-28, `296fad6` restored that repository to its October
+  2025 state. They remain in its git history.
