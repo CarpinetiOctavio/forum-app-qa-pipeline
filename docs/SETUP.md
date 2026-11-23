@@ -69,12 +69,12 @@ users                          posts                           comments
 ```
 
 Both foreign keys that reference `users`, and the one referencing `posts`,
-are declared `ON DELETE CASCADE`. Deleting a user deletes their posts *and*
-every comment on those posts; deleting a post deletes its comments. This
-matters for local testing: seeding a user, a few posts, and comments, then
-deleting the user, is enough to verify the cascade — no manual cleanup of
-orphaned rows is needed, and none is possible to forget. Indexes exist on
-all three foreign-key columns (`idx_posts_user_id`,
+are declared `ON DELETE CASCADE`, but none of them is enforced: SQLite checks
+foreign keys only on connections that enable them, and `InitDB` does not.
+Deleting a post leaves its comments in the table; deleting a user leaves
+their posts and comments. This is a known defect, recorded and not fixed in
+this repository ([ADR-006](decisions/ADR-006-sqlite-and-unenforced-foreign-keys.md)).
+Indexes exist on all three foreign-key columns (`idx_posts_user_id`,
 `idx_comments_post_id`, `idx_comments_user_id`).
 
 Tests never touch this file — every repository is mocked in the service-layer
