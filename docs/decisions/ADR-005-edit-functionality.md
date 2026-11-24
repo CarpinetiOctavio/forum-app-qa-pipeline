@@ -55,6 +55,8 @@ that proves something and one that doesn't.
 
 See [docs/diagrams/edit-delete-authorization-matrix.svg](../diagrams/edit-delete-authorization-matrix.svg) for this asymmetry laid out across all four methods.
 
+![Where each edit and delete method checks authorship: in Go or in SQL](../diagrams/edit-delete-authorization-matrix.svg)
+
 ## Scope of the feature itself
 
 Kept intentionally minimal — this exists to make TP7's update-flow
@@ -99,3 +101,9 @@ the marginal implementation cost.
   happy path.
 - Coverage strategy (`ADR-001`) is unaffected in its boundaries — these are
   Services/Components-layer additions, measured the same as existing code.
+
+## Amendment (2026-11-23): the diagram is shown where it was linked
+
+The diagram this record already linked,
+[`edit-delete-authorization-matrix.svg`](../diagrams/edit-delete-authorization-matrix.svg),
+is now shown right below that link. No other text in this record changed.

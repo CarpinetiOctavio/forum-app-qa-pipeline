@@ -15,6 +15,8 @@ Use Cypress for E2E testing, with `cy.intercept()` mocks standing in for the bac
 
 See [docs/diagrams/cypress-mocked-vs-real.svg](../diagrams/cypress-mocked-vs-real.svg) for this mocked-vs-real split laid out visually.
 
+![Cypress tests: 19 against mocked responses, 2 against the real backend and SQLite](../diagrams/cypress-mocked-vs-real.svg)
+
 ## Rationale
 
 **Cypress over alternatives:**
@@ -87,3 +89,9 @@ reasons:
 
 The action's built-in wait stops being a reason for choosing Cypress; the
 other reasons in the Rationale stand.
+
+## Amendment (2026-11-23): the diagram is shown where it was linked
+
+The diagram this record already linked,
+[`cypress-mocked-vs-real.svg`](../diagrams/cypress-mocked-vs-real.svg),
+is now shown right below that link. No other text in this record changed.
