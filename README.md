@@ -16,17 +16,17 @@ Closed. This repository started in 2026 as a copy of `forum-app-ci-testing@v1.1.
 
 ![CI/CD pipeline](docs/diagrams/ci-pipeline.svg)
 
-Each build waits for its test suite; SonarCloud and Cypress wait for both suites and run in parallel with each other. `Test Summary` fails if any job fails ([ADR-004](docs/decisions/ADR-004-pipeline-extension.md)).
+Job order and triggers: [ADR-004](docs/decisions/ADR-004-pipeline-extension.md).
 
 ![Layered architecture and coverage scope](docs/diagrams/layered-architecture.svg)
 
-The coverage gate measures only the layers that hold business rules: the backend Services layer and the frontend components and services ([ADR-001](docs/decisions/ADR-001-coverage-strategy.md)).
+Coverage scope: [ADR-001](docs/decisions/ADR-001-coverage-strategy.md). Foreign keys declared, not enforced: [ADR-006](docs/decisions/ADR-006-sqlite-and-unenforced-foreign-keys.md).
 
 ## What this repository shows
 
 1. **A 70% coverage gate, measured only where the business rules live.** The backend gate covers `internal/services/`, and the frontend gate covers components and services. 100% would reward tests written for the number; measuring wiring and type definitions would make the percentage say nothing ([ADR-001](docs/decisions/ADR-001-coverage-strategy.md)).
 2. **SonarCloud's quality gate blocks the path to `main`.** The scanner waits for the gate, and a red gate fails the job, on pull requests into `main` and on pushes to `main` ([ADR-002](docs/decisions/ADR-002-sonarcloud.md)).
-3. **Cypress against mocked responses, except where a mock would hide the rule.** `DeleteComment` checks authorship in a SQL `WHERE` clause, which a mocked test can't reach; its two tests run against the real backend and SQLite. The other 19 use `cy.intercept()` ([ADR-003](docs/decisions/ADR-003-cypress.md)).
+3. **Cypress against mocked responses, except where a mock would hide the rule.** `DeleteComment` checks authorship in a SQL `WHERE` clause, which a mocked test can't reach; its two tests run against the real backend and SQLite. The other 19 use `cy.intercept()` ([ADR-003](docs/decisions/ADR-003-cypress.md), with a diagram).
 4. **The slow gates run after the fast ones.** SonarCloud and Cypress wait for the unit-test jobs, in parallel with each other: a failing unit test stops the run before static analysis and E2E spend time on it ([ADR-004](docs/decisions/ADR-004-pipeline-extension.md)).
 
 ## Limitations
@@ -42,7 +42,7 @@ The coverage gate measures only the layers that hold business rules: the backend
 ## Errors I found and corrected
 
 - I configured `sonar.sources` and `sonar.tests` so that SonarCloud analyzed almost nothing for over a day; it took four rounds to get them right ([ADR-002](docs/decisions/ADR-002-sonarcloud.md)).
-- My trigger never ran the pipeline on merges into `staging` or `main` ([ADR-004](docs/decisions/ADR-004-pipeline-extension.md)).
+- My trigger never ran the pipeline on merges into `staging` or `main` ([ADR-004](docs/decisions/ADR-004-pipeline-extension.md), with a diagram).
 - I left the SonarCloud job green with the quality gate red: nothing waited for the gate ([ADR-002](docs/decisions/ADR-002-sonarcloud.md)).
 - I relied on the Cypress action's own wait for the frontend; it ended within milliseconds instead of waiting, and I replaced it with `wait-on` ([ADR-003](docs/decisions/ADR-003-cypress.md)).
 - I used `wait-on`'s `http://` scheme, which sends `HEAD` to a route that only accepts `GET` ([ADR-003](docs/decisions/ADR-003-cypress.md)).
