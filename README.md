@@ -12,15 +12,26 @@ Reading paths: in 30 seconds, the opening paragraph; in five minutes, "What this
 
 Closed. This repository started in 2026 as a copy of `forum-app-ci-testing@v1.1.0`, not as a continuation of the original TP7 submission (October 2025), which is preserved, archived, at [`forum-app-qa-pipeline-legacy`](https://github.com/CarpinetiOctavio/forum-app-qa-pipeline-legacy) ([ADR-000](docs/decisions/ADR-000-starting-from-ci-testing-v1.1.0.md)). Decisions are recorded in [`docs/decisions/`](docs/decisions/). `CLAUDE.md` and [`docs/rules/`](docs/rules/) are operating instructions for an AI assistant working in this repository, not project documentation.
 
+## How it works
+
+![CI/CD pipeline](docs/diagrams/ci-pipeline.svg)
+
+Each build waits for its test suite; SonarCloud and Cypress wait for both suites and run in parallel with each other. `Test Summary` fails if any job fails ([ADR-004](docs/decisions/ADR-004-pipeline-extension.md)).
+
+![Layered architecture and coverage scope](docs/diagrams/layered-architecture.svg)
+
+The coverage gate measures only the layers that hold business rules: the backend Services layer and the frontend components and services ([ADR-001](docs/decisions/ADR-001-coverage-strategy.md)).
+
 ## What this repository shows
 
 1. **A 70% coverage gate, measured only where the business rules live.** The backend gate covers `internal/services/`, and the frontend gate covers components and services. 100% would reward tests written for the number; measuring wiring and type definitions would make the percentage say nothing ([ADR-001](docs/decisions/ADR-001-coverage-strategy.md)).
-2. **SonarCloud's quality gate blocks the path to `main`.** The scanner waits for the gate, and a red gate fails the job, on pull requests into `main` and on pushes to `main`: the gate is required only there. On the Free plan, waiting on a push to `feature/**` fails the job ([run `43382798700`](https://github.com/CarpinetiOctavio/forum-app-qa-pipeline/actions/runs/43382798700); [ADR-002](docs/decisions/ADR-002-sonarcloud.md)).
+2. **SonarCloud's quality gate blocks the path to `main`.** The scanner waits for the gate, and a red gate fails the job, on pull requests into `main` and on pushes to `main` ([ADR-002](docs/decisions/ADR-002-sonarcloud.md)).
 3. **Cypress against mocked responses, except where a mock would hide the rule.** `DeleteComment` checks authorship in a SQL `WHERE` clause, which a mocked test can't reach; its two tests run against the real backend and SQLite. The other 19 use `cy.intercept()` ([ADR-003](docs/decisions/ADR-003-cypress.md)).
 4. **The slow gates run after the fast ones.** SonarCloud and Cypress wait for the unit-test jobs, in parallel with each other: a failing unit test stops the run before static analysis and E2E spend time on it ([ADR-004](docs/decisions/ADR-004-pipeline-extension.md)).
 
 ## Limitations
 
+- **Known defect, not fixed: the schema's foreign keys are not enforced.** The `ON DELETE CASCADE` rules it declares never run, so deleting a post leaves its comments in the database. The defect comes from ci-testing's code, which is closed; it is recorded here and not fixed ([ADR-006](docs/decisions/ADR-006-sqlite-and-unenforced-foreign-keys.md)).
 - **The SonarCloud gate is required only on the path to `main`.** Pull requests into `staging` have a gate, measured against `main` on the Free plan, but are not blocked, and `feature/**` branches are analyzed without a gate. A SonarCloud outage blocks merges into `main` ([ADR-002](docs/decisions/ADR-002-sonarcloud.md)).
 - **Mocked E2E tests prove the UI given a response, not that the backend produces it**; only `DeleteComment` runs end to end ([ADR-003](docs/decisions/ADR-003-cypress.md)).
 - **No real authentication.** Authorization tests verify the authorship comparison, not the caller's identity: the app trusts a client-supplied `X-User-ID` header, inherited from [ci-testing's ADR-008](https://github.com/CarpinetiOctavio/forum-app-ci-testing/blob/main/docs/decisions/ADR-008-app-security-scope.md).
@@ -40,13 +51,11 @@ Closed. This repository started in 2026 as a copy of `forum-app-ci-testing@v1.1.
 
 ## Decisions
 
-Every decision, with its alternatives and later amendments, is in [`docs/decisions/`](docs/decisions/).
+Every decision, with its alternatives and later amendments, is in [`docs/decisions/`](docs/decisions/); its index lists each record with one line on what it decides.
 
 ## Evidence
 
-![CI/CD pipeline](docs/diagrams/ci-pipeline.svg)
-
-The figures above come from [run `43384887706`](https://github.com/CarpinetiOctavio/forum-app-qa-pipeline/actions/runs/43384887706). GitHub keeps Actions logs for 90 days; [`docs/screenshots/`](docs/screenshots/) is the record after that.
+The figures in the opening paragraph come from [run `43384887706`](https://github.com/CarpinetiOctavio/forum-app-qa-pipeline/actions/runs/43384887706). GitHub keeps Actions logs for 90 days; [`docs/screenshots/`](docs/screenshots/) is the record after that, with one line per capture on what it shows.
 
 ## Running it
 
