@@ -6,7 +6,7 @@ This repository adds three quality gates to the unit-test pipeline of the first 
 
 > **Series.** This is the second of three repositories: [ci-testing](https://github.com/CarpinetiOctavio/forum-app-ci-testing) → **qa-pipeline** → [cloud-deploy](https://github.com/CarpinetiOctavio/forum-app-cloud-deploy). The split follows the course's assignments (TP6, TP7, TP8 of Software Engineering III, UCC); in practice it would be one repository with tags.
 
-Reading paths: in 30 seconds, the opening paragraph; in five minutes, "What this repository shows", "Limitations" and "Errors I found and corrected"; in depth, the decision record each point and each error links. The rest is reference.
+Reading paths: in 30 seconds, the opening paragraph; in five minutes, "What this repository shows", "Limitations" and "Errors found and corrected"; in depth, the decision record each point and each error links. The rest is reference.
 
 ## Status
 
@@ -39,15 +39,15 @@ Coverage scope: [ADR-001](docs/decisions/ADR-001-coverage-strategy.md). Foreign 
 - **The Cypress job installs with `npm install`, not `npm ci`**, an accepted SonarCloud finding ([ADR-003](docs/decisions/ADR-003-cypress.md)).
 - **Containers, a registry and deployment** are [cloud-deploy](https://github.com/CarpinetiOctavio/forum-app-cloud-deploy)'s scope.
 
-## Errors I found and corrected
+## Errors found and corrected
 
-- I configured `sonar.sources` and `sonar.tests` so that SonarCloud analyzed almost nothing for over a day; it took four rounds to get them right ([ADR-002](docs/decisions/ADR-002-sonarcloud.md)).
-- My trigger never ran the pipeline on merges into `staging` or `main` ([ADR-004](docs/decisions/ADR-004-pipeline-extension.md), with a diagram).
-- I left the SonarCloud job green with the quality gate red: nothing waited for the gate ([ADR-002](docs/decisions/ADR-002-sonarcloud.md)).
-- I relied on the Cypress action's own wait for the frontend; it ended within milliseconds instead of waiting, and I replaced it with `wait-on` ([ADR-003](docs/decisions/ADR-003-cypress.md)).
-- I used `wait-on`'s `http://` scheme, which sends `HEAD` to a route that only accepts `GET` ([ADR-003](docs/decisions/ADR-003-cypress.md)).
-- I presented as a gap a ruleset that was already covered by `Test Summary` ([ADR-004](docs/decisions/ADR-004-pipeline-extension.md)).
-- I wrote in ADR-000 that `ci-testing` already ran on Node.js 24; it did not ([ADR-000](docs/decisions/ADR-000-starting-from-ci-testing-v1.1.0.md)).
+- `sonar.sources` and `sonar.tests` were configured so that SonarCloud analyzed almost nothing for over a day; it took four rounds to get them right ([ADR-002](docs/decisions/ADR-002-sonarcloud.md)).
+- The trigger never ran the pipeline on merges into `staging` or `main` ([ADR-004](docs/decisions/ADR-004-pipeline-extension.md), with a diagram).
+- The SonarCloud job was left green with the quality gate red: nothing waited for the gate ([ADR-002](docs/decisions/ADR-002-sonarcloud.md)).
+- The frontend wait first relied on the Cypress action's own wait, which ended within milliseconds instead of waiting; it was replaced with `wait-on` ([ADR-003](docs/decisions/ADR-003-cypress.md)).
+- `wait-on` was used with its `http://` scheme, which sends `HEAD` to a route that only accepts `GET` ([ADR-003](docs/decisions/ADR-003-cypress.md)).
+- A ruleset that was already covered by `Test Summary` was presented as a gap ([ADR-004](docs/decisions/ADR-004-pipeline-extension.md)).
+- ADR-000 stated that `ci-testing` already ran on Node.js 24; it did not ([ADR-000](docs/decisions/ADR-000-starting-from-ci-testing-v1.1.0.md)).
 
 ## Decisions
 
